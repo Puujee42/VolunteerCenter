@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, Fragment } from "react";
 import Link from "next/link";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, Variants } from "framer-motion";
 import { format } from "date-fns";
 import {
   FaCalendarAlt,
@@ -146,7 +146,7 @@ const HeadSlider = () => {
 };
 
 /* ────────────────────── Sub-Components ────────────────────── */
-const itemVariants = {
+const itemVariants: Variants = {
     hidden: { opacity: 0, y: 30 },
     visible: { opacity: 1, y: 0, transition: { duration: 0.8, ease: "easeOut" } },
 };

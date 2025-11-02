@@ -1,6 +1,6 @@
 "use client";
 
-import { motion, useScroll, useTransform } from "framer-motion";
+import { motion, useScroll, useTransform, Variants } from "framer-motion";
 import { useLanguage } from "../context/LanguageContext";
 import { FaHandsHelping, FaGlobe, FaUsers, FaHeart } from "react-icons/fa";
 import React, { useRef } from "react";
@@ -53,7 +53,7 @@ const AboutSection = () => {
     },
   };
 
-  const itemVariants = {
+  const itemVariants: Variants = {
     hidden: { opacity: 0, x: -30 },
     visible: { opacity: 1, x: 0, transition: { duration: 0.8, ease: "easeOut" } },
   };
@@ -126,7 +126,7 @@ interface ValueCardProps {
   description: string;
 }
 const ValueCard: React.FC<ValueCardProps> = ({ icon: Icon, title, description }) => {
-    const cardVariants = {
+    const cardVariants: Variants = {
         hidden: { opacity: 0, x: -20 },
         visible: { opacity: 1, x: 0, transition: { duration: 0.6, ease: "easeOut" } },
     }

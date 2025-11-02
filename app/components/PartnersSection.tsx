@@ -1,6 +1,6 @@
 "use client";
 
-import { motion, useMotionValue, useSpring, useTransform } from "framer-motion";
+import { motion, useMotionValue, useSpring, useTransform, Variants } from "framer-motion";
 import { useLanguage } from "../context/LanguageContext";
 import React from "react";
 import Image from "next/image";
@@ -101,7 +101,7 @@ const PartnerCard: React.FC<PartnerCardProps> = ({ partner }) => {
     mouseY.set(e.clientY - rect.top);
   };
   
-  const cardVariants = {
+  const cardVariants: Variants = {
     hidden: { opacity: 0, scale: 0.8 },
     visible: { opacity: 1, scale: 1, transition: { duration: 0.6, ease: "easeOut" } },
   };

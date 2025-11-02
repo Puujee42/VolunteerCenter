@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { motion, Variants } from "framer-motion";
 import { useLanguage } from "../context/LanguageContext";
 import React, { useState } from "react";
 import Link from "next/link";
@@ -122,10 +122,10 @@ const LoginForm: React.FC<{ t: any }> = ({ t }) => {
         // --- 5. BIND STATE AND ADD LOADING/ERROR HANDLING ---
         <form onSubmit={handleSubmit} className="space-y-6">
             <motion.div variants={itemVariants}>
-                 <InputField type="text" placeholder={t.idPlaceholder} icon={FaUser} value={identifier} onChange={(e) => setIdentifier(e.target.value)} />
+                 <InputField type="text" placeholder={t.idPlaceholder} icon={FaUser} value={identifier} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setIdentifier(e.target.value)} />
             </motion.div>
             <motion.div variants={itemVariants}>
-                 <InputField type="password" placeholder={t.passwordPlaceholder} icon={FaLock} value={password} onChange={(e) => setPassword(e.target.value)} />
+                 <InputField type="password" placeholder={t.passwordPlaceholder} icon={FaLock} value={password} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)} />
             </motion.div>
 
             {error && <p className="text-red-500 text-sm text-center -mt-2 mb-2">{error}</p>}
@@ -162,7 +162,7 @@ const staggerContainer = {
   },
 };
 
-const itemVariants = {
+const itemVariants: Variants= {
   hidden: { opacity: 0, y: 20 },
   visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: "easeOut" } },
 };

@@ -1,8 +1,8 @@
 'use client';
 
-import React, t, { useState, useMemo } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { FaCalendarCheck, FaMapMarkerAlt, FaUsers, FaGripHorizontal, FaList, FaChevronDown, FaFilter, FaArrowLeft, FaArrowRight } from 'react-icons/fa';
+import React, { useState, useMemo } from 'react';
+import { motion, AnimatePresence, Variants } from 'framer-motion';
+import { FaMapMarkerAlt, FaUsers, FaGripHorizontal, FaList, FaChevronDown, FaArrowLeft, FaArrowRight } from 'react-icons/fa';
 import { useLanguage } from "../context/LanguageContext";
 
 // --- Bilingual Data Store for UI Text ---
@@ -187,23 +187,23 @@ const EventsSection: React.FC = () => {
   );
 };
 
-// --- Hero Component ---
-const EventsHero: React.FC<{ t: typeof eventsContentData.en }> = ({ t }) => (
-  <div className="relative py-28 bg-[#0d1127] text-white overflow-hidden">
-     <div className="absolute inset-0 bg-black/10 z-10"></div>
-      <div className="absolute inset-0 z-0 opacity-50">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_#a855f799,_transparent_50%)]" />
-      </div>
-    <div className="container mx-auto max-w-7xl px-4 relative z-20 text-center">
-      <motion.h1 initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, ease: "easeOut" }} className="text-5xl md:text-6xl font-bold mb-2">
-        {t.heroTitle}
-      </motion.h1>
-      <motion.p initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, ease: "easeOut", delay: 0.2 }} className="text-lg text-slate-300">
-        {t.heroBreadcrumb} / {t.heroTitle}
-      </motion.p>
-    </div>
-  </div>
-);
+ // --- Hero Component ---
+ const EventsHero: React.FC<{ t: typeof eventsContentData.en }> = ({ t }) => (
+   <div className="relative py-28 bg-[#0d1127] text-white overflow-hidden">
+      <div className="absolute inset-0 bg-black/10 z-10"></div>
+       <div className="absolute inset-0 z-0 opacity-50">
+         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_#a855f799,_transparent_50%)]" />
+       </div>
+     <div className="container mx-auto max-w-7xl px-4 relative z-20 text-center">
+       <motion.h1 initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }} className="text-5xl md:text-6xl font-bold mb-2">
+         {t.heroTitle}
+       </motion.h1>
+       <motion.p initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1], delay: 0.2 }} className="text-lg text-slate-300">
+         {t.heroBreadcrumb} / {t.heroTitle}
+       </motion.p>
+     </div>
+   </div>
+ );
 
 
 // --- Controls Header Component ---
@@ -274,7 +274,7 @@ interface EventCardProps {
 const EventCard: React.FC<EventCardProps> = ({ item, t, language, viewMode }) => {
   const progress = (item.registered / item.capacity) * 100;
 
-  const cardVariants = {
+  const cardVariants: Variants = {
     hidden: { opacity: 0, y: 50, scale: 0.95 },
     visible: { opacity: 1, y: 0, scale: 1, transition: { duration: 0.5, ease: "easeOut" }},
   };
@@ -304,10 +304,16 @@ const EventCard: React.FC<EventCardProps> = ({ item, t, language, viewMode }) =>
                 {item.status === 'open' && <span className='text-green-600 font-bold'>{item.capacity - item.registered} {t.spotsLeft}</span>}
             </div>
             <div className="w-full bg-slate-200 rounded-full h-2">
-                <motion.div initial={{ width: 0 }} whileInView={{ width: `${progress}%`}} viewport={{once: true}} transition={{ duration: 1, ease: 'easeOut', delay: 0.3 }} className={`h-2 rounded-full ${progress >= 100 ? 'bg-orange-500' : 'bg-gradient-to-r from-purple-500 to-fuchsia-500'}`} />
+                <motion.div initial={{ width: 0 }} whileInView={{ width: `${progress}%`}} viewport={{once: true}} transition={{ duration: 1, ease: [0.22, 1, 0.36, 1], delay: 0.3 }} className={`h-2 rounded-full ${progress >= 100 ? 'bg-orange-500' : 'bg-gradient-to-r from-purple-500 to-fuchsia-500'}`} />
             </div>
         </div>
-        <a href={item.link} className={`mt-4 block text-center w-full px-6 py-2.5 font-bold rounded-lg transition-all shadow-md group-hover:shadow-lg disabled:cursor-not-allowed ${item.status === 'open' ? 'bg-purple-600 text-white hover:bg-purple-700' : 'bg-slate-200 text-slate-600'}`} disabled={item.status !== 'open'}>
+        <a
+          href={item.status === 'open' ? item.link : '#'}
+          onClick={item.status !== 'open' ? (e) => e.preventDefault() : undefined}
+          aria-disabled={item.status !== 'open'}
+          tabIndex={item.status !== 'open' ? -1 : 0}
+          className={`mt-4 block text-center w-full px-6 py-2.5 font-bold rounded-lg transition-all shadow-md group-hover:shadow-lg ${item.status === 'open' ? 'bg-purple-600 text-white hover:bg-purple-700' : 'bg-slate-200 text-slate-600 cursor-not-allowed'}`}
+        >
           {item.status === 'open' ? t.register : t.viewDetails}
         </a>
       </div>
@@ -355,10 +361,16 @@ const EventCard: React.FC<EventCardProps> = ({ item, t, language, viewMode }) =>
                   {item.status === 'open' && <span className='text-green-600 font-bold'>{item.capacity - item.registered} {t.spotsLeft}</span>}
               </div>
               <div className="w-full bg-slate-200 rounded-full h-2">
-                  <motion.div initial={{ width: 0 }} whileInView={{ width: `${progress}%`}} viewport={{once: true}} transition={{ duration: 1, ease: 'easeOut', delay: 0.3 }} className={`h-2 rounded-full ${progress >= 100 ? 'bg-orange-500' : 'bg-gradient-to-r from-purple-500 to-fuchsia-500'}`} />
+                  <motion.div initial={{ width: 0 }} whileInView={{ width: `${progress}%`}} viewport={{once: true}} transition={{ duration: 1, ease: [0.22, 1, 0.36, 1], delay: 0.3 }} className={`h-2 rounded-full ${progress >= 100 ? 'bg-orange-500' : 'bg-gradient-to-r from-purple-500 to-fuchsia-500'}`} />
               </div>
           </div>
-          <a href={item.link} className={`mt-4 block text-center w-full px-6 py-2.5 font-bold rounded-lg transition-all shadow-md group-hover:shadow-lg disabled:cursor-not-allowed ${item.status === 'open' ? 'bg-purple-600 text-white hover:bg-purple-700' : 'bg-slate-200 text-slate-600'}`} disabled={item.status !== 'open'}>
+          <a
+            href={item.status === 'open' ? item.link : '#'}
+            onClick={item.status !== 'open' ? (e) => e.preventDefault() : undefined}
+            aria-disabled={item.status !== 'open'}
+            tabIndex={item.status !== 'open' ? -1 : 0}
+            className={`mt-4 block text-center w-full px-6 py-2.5 font-bold rounded-lg transition-all shadow-md group-hover:shadow-lg ${item.status === 'open' ? 'bg-purple-600 text-white hover:bg-purple-700' : 'bg-slate-200 text-slate-600 cursor-not-allowed'}`}
+          >
             {item.status === 'open' ? t.register : t.viewDetails}
           </a>
         </div>

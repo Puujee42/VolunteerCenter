@@ -27,7 +27,7 @@ const donationData = {
     namePlaceholder: "Нэр",
     emailPlaceholder: "Имэйл",
     paymentInfo: "Төлбөрийн мэдээлэл",
-    donateButton: (amount) => `${amount}₮ Хандивлах`,
+    donateButton: (amount:number) => `${amount}₮ Хандивлах`,
     secureDonation: "Аюулгүй хандив",
     faqTitle: "Итгэл ба Ил тод байдал",
     faqs: [
@@ -58,7 +58,7 @@ const donationData = {
     namePlaceholder: "Full Name",
     emailPlaceholder: "Email Address",
     paymentInfo: "Payment Information",
-    donateButton: (amount) => `Donate $${amount}`,
+    donateButton: (amount:number) => `Donate $${amount}`,
     secureDonation: "Secure Donation",
     faqTitle: "Transparency & Trust",
     faqs: [

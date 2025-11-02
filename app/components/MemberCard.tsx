@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { motion, Variants } from "framer-motion";
 import Link from "next/link";
 import Image from "next/image";
 import { FaFacebookF, FaTwitter, FaLinkedinIn } from "react-icons/fa";
@@ -28,7 +28,7 @@ interface MemberCardProps {
 // --- 3. THE MEMBER CARD COMPONENT ---
 const MemberCard: React.FC<MemberCardProps> = ({ member }) => {
   // Animation variants for the "reveal" effect on hover.
-  const overlayVariants = {
+  const overlayVariants: Variants = {
     initial: { opacity: 0, y: 20 },
     hover: {
       opacity: 1,
@@ -37,13 +37,14 @@ const MemberCard: React.FC<MemberCardProps> = ({ member }) => {
     },
   };
 
+  const cardVariants: Variants = {
+    hidden: { opacity: 0, y: 50 },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: "easeOut" } },
+  };
+
   return (
     <motion.div
-      // This variant allows the card to be animated as part of a staggered grid.
-      variants={{
-        hidden: { opacity: 0, y: 50 },
-        visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: "easeOut" } },
-      }}
+      variants={cardVariants}
       className="group relative rounded-2xl overflow-hidden shadow-2xl shadow-slate-950/50"
     >
       <Image

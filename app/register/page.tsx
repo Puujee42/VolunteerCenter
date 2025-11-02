@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { motion, Variants } from "framer-motion";
 import { useLanguage } from "../context/LanguageContext";
 import React, { useState, useMemo, useEffect } from "react"; // Added useEffect
 import Link from "next/link";
@@ -286,6 +286,6 @@ const SelectField: React.FC<any> = ({ label, children, icon: Icon, ...props }) =
 );
 
 const staggerContainer = { hidden: { opacity: 0 }, visible: { opacity: 1, transition: { staggerChildren: 0.08 } } };
-const itemVariants = { hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: "easeOut" } } };
+const itemVariants:Variants = { hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: "easeOut" } } };
 
 export default RegisterPage;

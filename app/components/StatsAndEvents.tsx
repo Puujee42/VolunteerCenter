@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { motion, Variants } from "framer-motion";
 import { FaUsers, FaBriefcase, FaCalendarCheck, FaBullhorn, FaArrowRight } from "react-icons/fa";
 import { useLanguage } from "../context/LanguageContext";
 import CountUp from "react-countup";
@@ -109,7 +109,7 @@ const StatCard: React.FC<{ icon: React.ElementType, value: number, label: string
 
 const EventTicker: React.FC<{ events: any[], title: string, viewEventText: string }> = ({ events, title, viewEventText }) => {
     const duplicatedEvents = [...events, ...events];
-    const marqueeVariants = {
+    const marqueeVariants: Variants = {
         animate: {
             x: [0, -1 * (events.length * 352)], // Card width (320px) + gap (32px) = 352
             transition: { x: { repeat: Infinity, repeatType: "loop", duration: events.length * 6, ease: "linear" } },

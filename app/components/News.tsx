@@ -9,14 +9,14 @@ import { useLanguage } from "../context/LanguageContext";
 const newsContentData = {
   mn: {
     title: "Сүүлийн үеийн мэдээ",
-    totalNewsText: (count) => `Нийт ${count} мэдээлэл байна`,
+    totalNewsText: (count: number) => `Нийт ${count} мэдээлэл байна`,
     readMore: "Дэлгэрэнгүй",
     prevButton: "Өмнөх",
     nextButton: "Дараах",
   },
   en: {
     title: "Latest News & Updates",
-    totalNewsText: (count) => `Showing ${count} total articles`,
+    totalNewsText: (count: number) => `Showing ${count} total articles`,
     readMore: "Read More",
     prevButton: "Previous",
     nextButton: "Next",
