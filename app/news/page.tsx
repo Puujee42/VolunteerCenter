@@ -7,11 +7,7 @@ import Layout from "../layout";
 export default function IntroductionPage() {
   return (
     <>
-   
-      <Layout>
         <News/>
-        <Footer />
-      </Layout>
     </>
   );
 }

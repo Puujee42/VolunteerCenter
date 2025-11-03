@@ -12,10 +12,10 @@ const partnersData = {
     subtitle: "Хамтдаа бид үйлсээ улам өргөжүүлдэг.",
     partners: [
       { name: "UNICEF", image: "/unicef.png", href: "https://www.unicef.org/" },
-      { name: "Монголын Хүүхдийн Сан", image: "/mongolian-org.png", href: "#" },
-      { name: "World Vision", image: "/world-vision.png", href: "#" },
-      { name: "Монголын Улаан Загалмай", image: "/red-cross.png", href: "#" },
-      { name: "Монголын Залуучуудын Холбоо", image: "/youth-federation.png", href: "#" },
+      { name: "Монголын Хүүхдийн Сан", image: "/mongolian-org.png", href: "https://www.cfga.gov.mn/website/home.aspx" },
+      { name: "World Vision", image: "/world-vision.png", href: "https://worldvision.mn/" },
+      { name: "Монголын Улаан Загалмай", image: "/red-cross.png", href: "https://www.redcross.mn/" },
+      { name: "Монголын Залуучуудын Холбоо", image: "/youth-federation.png", href: "https://myf.mn/" },
     ],
   },
   en: {
@@ -23,10 +23,10 @@ const partnersData = {
     subtitle: "Together, We Amplify Our Impact.",
     partners: [
       { name: "UNICEF", image: "/unicef.png", href: "https://www.unicef.org/" },
-      { name: "Mongolian Children's Fund", image: "/mongolian-org.png", href: "#" },
-      { name: "World Vision", image: "/world-vision.png", href: "#" },
-      { name: "Mongolian Red Cross", image: "/red-cross.png", href: "#" },
-      { name: "Mongolian Youth Federation", image: "/youth-federation.png", href: "#" },
+      { name: "Mongolian Children's Fund", image: "/mongolian-org.png", href: "https://www.cfga.gov.mn/website/home.aspx" },
+      { name: "World Vision", image: "/world-vision.png", href: "https://worldvision.mn/x " },
+      { name: "Mongolian Red Cross", image: "/red-cross.png", href: "https://www.redcross.mn/" },
+      { name: "Mongolian Youth Federation", image: "/youth-federation.png", href: "https://myf.mn/" },
     ],
   },
 };
