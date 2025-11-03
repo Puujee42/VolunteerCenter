@@ -278,7 +278,7 @@ const SelectField: React.FC<any> = ({ label, children, icon: Icon, ...props }) =
         <div className="relative">
              {Icon ? <Icon className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" /> : <FaMapMarkerAlt className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />}
              <select {...props} required className="w-full appearance-none bg-white border-2 border-slate-300 rounded-lg py-3 pl-12 pr-4 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition disabled:bg-slate-100">
-                <option value="" disabled selected>{label}</option>
+                <option defaultValue="" disabled selected>{label}</option>
                 {children}
             </select>
         </div>

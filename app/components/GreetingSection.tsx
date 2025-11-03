@@ -21,13 +21,13 @@ const greetingsData = {
     directorImage: "/tsev.png", // Director's portrait
     signatureImage: "/tsev.png", // Director's signature
     partners: [
-        { name: "MLSP", logo: "/logos/mlsp.png" },
-        { name: "World Vision", logo: "/logos/world-vision.png" },
-        { name: "Good Neighbors", logo: "/logos/good-neighbors.png" },
-        { name: "Peace Corps", logo: "/logos/peace-corps.png" },
-        { name: "Caritas Czech", logo: "/logos/caritas-czech.png" },
-        { name: "Caritas Mongolia", logo: "/logos/caritas-mongolia.png" },
-        { name: "Red Cross", logo: "/logos/red-cross.png" },
+        { name: "MLSP", logo: "/mlsp.png" },
+        { name: "World Vision", logo: "/world-vision.png" },
+        { name: "Good Neighbors", logo: "/good-neighbors.png" },
+        { name: "Peace Corps", logo: "/peace-corps.png" },
+        { name: "Caritas Czech", logo: "/caritas-czech.png" },
+        { name: "Caritas Mongolia", logo: "/caritas-mongolia.png" },
+        { name: "Red Cross", logo: "/red-cross.png" },
     ],
   },
   en: {
@@ -44,13 +44,13 @@ const greetingsData = {
     directorImage: "/tsev.png",
     signatureImage: "/tsev.png",
     partners: [
-        { name: "MLSP", logo: "/logos/mlsp.png" },
-        { name: "World Vision", logo: "/logos/world-vision.png" },
-        { name: "Good Neighbors", logo: "/logos/good-neighbors.png" },
-        { name: "Peace Corps", logo: "/logos/peace-corps.png" },
-        { name: "Caritas Czech", logo: "/logos/caritas-czech.png" },
-        { name: "Caritas Mongolia", logo: "/logos/caritas-mongolia.png" },
-        { name: "Red Cross", logo: "/logos/red-cross.png" },
+        { name: "MLSP", logo: "/mlsp.png" },
+        { name: "World Vision", logo: "/world-vision.png" },
+        { name: "Good Neighbors", logo: "/good-neighbors.png" },
+        { name: "Peace Corps", logo: "/peace-corps.png" },
+        { name: "Caritas Czech", logo: "/caritas-czech.png" },
+        { name: "Caritas Mongolia", logo: "/caritas-mongolia.png" },
+        { name: "Red Cross", logo: "/red-cross.png" },
     ],
   },
 };

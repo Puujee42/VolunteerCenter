@@ -63,7 +63,7 @@ const Hero = () => {
   const t = content[language];
 
   return (
-    <section className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden bg-gradient-to-br from-blue-50 via-cyan-50 to-indigo-50">
+    <section className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden bg-gradient-to-br from-blue-50 via-cyan-50 to-indigo-50 pt-24 md:pt-0"> {/* Added responsive padding-top */}
       {/* Animated Background Orbs */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <motion.div
@@ -86,7 +86,7 @@ const Hero = () => {
           transition={{ duration: 0.9, ease: "easeOut" }}
           className="max-w-6xl mx-auto"
         >
-          <div className="backdrop-blur-2xl bg-white/75 rounded-3xl shadow-2xl border border-white/60 p-10 md:p-16">
+          <div className="backdrop-blur-2xl bg-white/75 rounded-3xl shadow-2xl border border-white/60 p-6 md:p-16"> {/* Adjusted padding for mobile */}
             {/* Badge */}
             <motion.div
               initial={{ scale: 0.8, opacity: 0 }}
@@ -98,12 +98,11 @@ const Hero = () => {
               {t.badge}
             </motion.div>
 
-            {/* Headline with Typewriter Animation */}
-            <h1 className="text-5xl md:text-7xl font-black text-gray-800 leading-tight mb-6 h-[4rem] md:h-[6rem]">
+            {/* Headline with Typewriter Animation - Mobile Fix Applied Here */}
+            <h1 className="text-4xl sm:text-5xl md:text-7xl font-black text-gray-800 leading-tight mb-6 min-h-[4rem] sm:min-h-[5rem] md:min-h-[6rem]">
               <TypeAnimation
                 key={`headline-${language}`}
                 sequence={[
-                  
                   3000,
                   language === "mn" ? "Хамтдаа Өөрчлөе" : "Change Together",
                   3000,

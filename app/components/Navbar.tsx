@@ -251,7 +251,7 @@ const Navbar: React.FC = () => {
         variants={{ visible: { y: 0 }, hidden: { y: "-100%" } }}
         animate={hidden ? "hidden" : "visible"}
         transition={{ duration: 0.4, ease: "easeOut" }}
-        className="fixed inset-x-0 top-16 z-40 flex justify-center pointer-events-none"
+        className="fixed inset-x-0 top-20 z-40 flex justify-center pointer-events-none"
       >
         {/* ── WIDE CONTAINER ── */}
         <nav
