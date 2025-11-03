@@ -57,7 +57,7 @@ const RegisterPage = () => {
             <section className="min-h-screen flex">
                 {/* --- Left Column: Hero Image --- */}
                 <div className="hidden lg:block relative w-1/2 bg-cover bg-center">
-                    <img src="/data.jpg" alt="A community of volunteers" className="absolute inset-0 w-full h-full object-cover" />
+                    <img src="/volunteers.png" alt="A community of volunteers" className="absolute inset-0 w-full h-full object-cover" />
                     <div className="absolute inset-0 bg-blue-900/60" />
                     <motion.div
                         initial={{ opacity: 0, y: 20 }}
@@ -272,15 +272,23 @@ const InputField: React.FC<any> = ({ icon: Icon, ...props }) => (
     </div>
 );
 
-const SelectField: React.FC<any> = ({ label, children, icon: Icon, ...props }) => (
+const SelectField: React.FC<{
+    label: string;
+    children: React.ReactNode;
+    icon?: React.ElementType;
+    [key: string]: any;
+}> = ({ label, children, icon: Icon, ...props }) => (
     <div>
         <label className="block text-sm font-semibold text-slate-600 mb-2">{label}</label>
         <div className="relative">
              {Icon ? <Icon className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" /> : <FaMapMarkerAlt className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />}
-             <select {...props} required className="w-full appearance-none bg-white border-2 border-slate-300 rounded-lg py-3 pl-12 pr-4 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition disabled:bg-slate-100">
-                <option defaultValue="" disabled selected>{label}</option>
+             <select {...props} required className="w-full appearance-none bg-white border-2 border-slate-300 rounded-lg py-3 pl-12 pr-10 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition disabled:bg-slate-100">
+                <option value="" disabled>{label}</option>
                 {children}
             </select>
+            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-slate-400">
+                <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
+            </div>
         </div>
     </div>
 );

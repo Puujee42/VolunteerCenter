@@ -43,7 +43,7 @@ const LoginPage = () => {
     <section className="min-h-screen flex">
       {/* --- Left Column: Hero Image & Quote --- */}
       <div className="hidden lg:block relative w-1/2 bg-cover bg-center">
-        <img src="/volu.png" alt="Volunteers working together" className="absolute inset-0 w-full h-full object-cover" />
+        <img src="/volunteering.png" alt="Volunteers working together" className="absolute inset-0 w-full h-full object-cover" />
         <div className="absolute inset-0 bg-blue-900/60" />
         <motion.div
             initial={{ opacity: 0, y: 20 }}
