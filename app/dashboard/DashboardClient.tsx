@@ -119,8 +119,8 @@ export default function DashboardClient({ user, dbUser, opportunities: initialOp
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 p-6 md:p-12">
-      <div className="max-w-7xl mx-auto">
+    <div className="min-h-screen bg-slate-50 p-6 md:p-12 pt-50">
+      <div className="max-w-7xl mx-auto pt-35">
         
         {/* Header */}
         <motion.div
