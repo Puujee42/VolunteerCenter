@@ -6,39 +6,28 @@ import { redirect } from 'next/navigation';
 export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
-  let user;
-
-  try {
-    // 1. Safe Authentication Check
-    user = await currentUser();
-  } catch (err) {
-    // If Clerk throws an error (like 404), force a logout/redirect
-    console.error("Clerk Auth Error:", err);
-    redirect('/sign-in');
-  }
-
-  // If not logged in, redirect
-  if (!user) {
-    redirect('/sign-in');
-  }
+  const user = await currentUser();
+  if (!user) redirect('/sign-in');
 
   const client = await clientPromise;
   const db = client.db("volunteer_db");
 
-  // 2. Fetch User from MongoDB with Retry Logic
-  // Sometimes Mongo is slow to index the new user after registration
+  // 1. Fetch User Profile (Retry logic for race conditions)
   let userProfile = null;
   for (let i = 0; i < 3; i++) {
     userProfile = await db.collection("users").findOne({ userId: user.id });
     if (userProfile) break; 
-    await new Promise(resolve => setTimeout(resolve, 500)); // Wait 500ms
+    await new Promise(resolve => setTimeout(resolve, 500));
   }
   
+  // 2. ✅ FETCH OPPORTUNITIES AND EVENTS
   const opportunities = await db.collection("opportunities").find({}).toArray();
+  const events = await db.collection("events").find({}).toArray(); 
 
-  // 3. Serialization
+  // 3. Serialize Data (Convert MongoDB IDs to strings)
   const serializedProfile = userProfile ? JSON.parse(JSON.stringify(userProfile)) : null;
   const serializedOpportunities = JSON.parse(JSON.stringify(opportunities));
+  const serializedEvents = JSON.parse(JSON.stringify(events)); 
 
   const simpleUser = {
     id: user.id,
@@ -51,7 +40,8 @@ export default async function DashboardPage() {
     <DashboardClient
       user={simpleUser}
       dbUser={serializedProfile}
-      opportunities={serializedOpportunities}
+      opportunities={serializedOpportunities} // Pass Jobs
+      events={serializedEvents}               // Pass Events
     />
   );
 }

@@ -1,24 +1,24 @@
 "use client";
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { 
   FaUserCircle, FaMapMarkedAlt, FaTasks, FaBirthdayCake, 
   FaMedal, FaClipboardList, FaLightbulb, FaHandsHelping, 
   FaChartPie, FaCheckCircle, FaLeaf, FaPaw, FaGraduationCap, 
-  FaFlag, FaUser 
+  FaFlag, FaUser, FaPlusCircle, FaCalendarAlt 
 } from 'react-icons/fa';
 import { 
     Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer 
 } from 'recharts';
 
 // --- 1. ICON MAPPER ---
-// MongoDB stores "FaMedal", but React needs the actual component.
 const IconMap: any = {
   FaUserCircle, FaMapMarkedAlt, FaTasks, FaBirthdayCake,
   FaMedal, FaClipboardList, FaLightbulb, FaHandsHelping,
   FaChartPie, FaCheckCircle, FaLeaf, FaPaw, FaGraduationCap,
-  FaFlag, FaUser
+  FaFlag, FaUser, FaCalendarAlt
 };
 
 // --- 2. INTERFACES ---
@@ -29,29 +29,90 @@ interface DashboardClientProps {
     username: string | null;
     imageUrl: string;
   };
-  dbUser: any;      // The full user profile from MongoDB
-  opportunities: any[]; // The list of opportunities from MongoDB
+  dbUser: any;
+  opportunities: any[];
+  events: any[]; // <--- Added events prop
 }
 
 // --- 3. MAIN COMPONENT ---
-export default function DashboardClient({ user, dbUser, opportunities }: DashboardClientProps) {
+export default function DashboardClient({ user, dbUser, opportunities: initialOpps, events: initialEvents }: DashboardClientProps) {
+  const router = useRouter();
   
-  // Safety Check: If DB sync hasn't finished yet
+  const [history, setHistory] = useState<any[]>([]);
+  const [items, setItems] = useState<any[]>([]); // Combined list
+  const [loadingJoin, setLoadingJoin] = useState<string | null>(null);
+
+  // Initialize state
+  useEffect(() => {
+    if (dbUser) {
+      setHistory(dbUser.history || []);
+
+      // MERGE Opportunities and Events into one array
+      const taggedOpps = (initialOpps || []).map(o => ({ ...o, type: 'opportunity' }));
+      const taggedEvents = (initialEvents || []).map(e => ({ ...e, type: 'event' }));
+      
+      setItems([...taggedOpps, ...taggedEvents]);
+    }
+  }, [dbUser, initialOpps, initialEvents]);
+
+  // Safety Check
   if (!dbUser) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-50">
-        <div className="text-center">
-            <h2 className="text-xl font-bold text-slate-800">Setting up your profile...</h2>
-            <p className="text-slate-500">Please refresh the page in a moment.</p>
+        <div className="text-center animate-pulse">
+            <h2 className="text-xl font-bold text-slate-800">Finalizing your profile...</h2>
+            <div className="mt-4 w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
         </div>
       </div>
     );
   }
 
-  // --- PREPARE DATA FROM DB ---
-  const { profileDetails, rank, history, strengths, recommendations } = dbUser;
+  // --- LOGIC: HANDLE JOINING ---
+  const handleJoin = async (item: any) => {
+    setLoadingJoin(item.id);
 
-  // Animation variants
+    try {
+      const res = await fetch('/api/user/join', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+            item: item, 
+            type: item.type // 'event' or 'opportunity'
+        })
+      });
+      const data = await res.json();
+
+      if (data.success) {
+        // 1. Add to History
+        setHistory([data.newHistoryItem, ...history]);
+        // 2. Refresh to sync server
+        router.refresh(); 
+      }
+    } catch (error) {
+      console.error("Failed to join:", error);
+    } finally {
+      setLoadingJoin(null);
+    }
+  };
+
+  // --- ✅ FILTER LOGIC ---
+  const availableItems = items.filter((item) => {
+    // Determine title (handle bilingual)
+    const itemTitle = typeof item.title === 'string' 
+        ? item.title 
+        : (item.title?.en || item.title?.mn || "");
+
+    // Check if title exists in history
+    const isTaken = history.some((h) => {
+        if (!h.title || !itemTitle) return false;
+        return h.title.toLowerCase().includes(itemTitle.toLowerCase());
+    });
+
+    return !isTaken;
+  });
+
+  const { profileDetails, rank, strengths, recommendations } = dbUser;
+
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: { opacity: 1, transition: { staggerChildren: 0.1 } },
@@ -61,7 +122,7 @@ export default function DashboardClient({ user, dbUser, opportunities }: Dashboa
     <div className="min-h-screen bg-slate-50 p-6 md:p-12">
       <div className="max-w-7xl mx-auto">
         
-        {/* --- Welcome Header --- */}
+        {/* Header */}
         <motion.div
           className="mb-10 flex flex-col md:flex-row items-center justify-between gap-4"
           initial={{ opacity: 0, y: -20 }}
@@ -81,28 +142,33 @@ export default function DashboardClient({ user, dbUser, opportunities }: Dashboa
           />
         </motion.div>
 
-        {/* --- Main Grid --- */}
+        {/* Main Grid */}
         <motion.div
           className="grid grid-cols-1 lg:grid-cols-12 gap-8 w-full"
           variants={containerVariants}
           initial="hidden"
           animate="visible"
         >
-          {/* LEFT COLUMN (Profile, Stats, Radar) - Spans 4 columns */}
+          {/* LEFT COLUMN */}
           <div className="lg:col-span-4 flex flex-col gap-8">
             <ProfileCard details={profileDetails} />
             <StrengthsRadarChart strengths={strengths} />
           </div>
 
-          {/* MIDDLE COLUMN (Rank, History) - Spans 5 columns */}
+          {/* MIDDLE COLUMN */}
           <div className="lg:col-span-5 flex flex-col gap-8">
              <RankCard rank={rank} />
              <HistoryTimeline history={history} />
           </div>
 
-          {/* RIGHT COLUMN (Opportunities, Recommendations) - Spans 3 columns */}
+          {/* RIGHT COLUMN */}
           <div className="lg:col-span-3 flex flex-col gap-8">
-             <OpportunityHub opportunities={opportunities} />
+             {/* ✅ PASS MERGED & FILTERED ITEMS */}
+             <OpportunityHub 
+                items={availableItems} 
+                onJoin={handleJoin} 
+                loadingId={loadingJoin} 
+             />
              <RecommendationsCard recommendations={recommendations} />
           </div>
 
@@ -113,10 +179,116 @@ export default function DashboardClient({ user, dbUser, opportunities }: Dashboa
 }
 
 // ─────────────────────────────────────────────────────────────
-// SUB-COMPONENTS (Included here for easy copy-paste)
+// SUB-COMPONENTS
 // ─────────────────────────────────────────────────────────────
 
-// 1. Profile Card
+// 1. Opportunity Hub (UPDATED to handle merged types)
+const OpportunityHub = ({ items, onJoin, loadingId }: { items: any[], onJoin: (o: any) => void, loadingId: string | null }) => (
+    <motion.div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100" variants={fadeInUp}>
+        <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                <FaHandsHelping className="text-blue-500" /> Discover
+            </h3>
+            <span className="text-xs font-bold bg-blue-100 text-blue-600 px-2 py-1 rounded-full">{items.length} New</span>
+        </div>
+        
+        {items.length === 0 ? (
+            <div className="text-center text-slate-400 py-6 text-sm border-2 border-dashed border-slate-100 rounded-xl">
+                <FaCheckCircle className="mx-auto text-2xl text-green-400 mb-2" />
+                You've joined everything!
+            </div>
+        ) : (
+            <div className="space-y-3">
+                {items.slice(0, 4).map((item, i) => {
+                    
+                    // Normalize fields (Events vs Opps)
+                    const title = typeof item.title === 'string' ? item.title : (item.title?.en || item.title?.mn);
+                    const isEvent = item.type === 'event';
+                    
+                    // Logic for "Full"
+                    let isFull = false;
+                    let spotsLeft = 0;
+
+                    if (isEvent) {
+                        isFull = item.registered >= item.capacity;
+                        spotsLeft = item.capacity - item.registered;
+                    } else {
+                        // Opportunity
+                        const filled = item.slots?.filled || 0;
+                        const total = item.slots?.total || 10;
+                        isFull = filled >= total;
+                        spotsLeft = total - filled;
+                    }
+
+                    return (
+                        <div key={i} className="p-3 rounded-xl border border-slate-100 hover:border-blue-300 transition-all bg-slate-50/50 flex flex-col gap-2 relative">
+                            {/* Type Badge */}
+                            <span className={`absolute top-2 right-2 text-[10px] uppercase font-bold px-1.5 py-0.5 rounded ${isEvent ? 'bg-purple-100 text-purple-600' : 'bg-green-100 text-green-600'}`}>
+                                {isEvent ? "Event" : "Job"}
+                            </span>
+
+                            <div>
+                                <h4 className="font-bold text-slate-800 text-sm pr-12 line-clamp-1">{title}</h4>
+                                <div className="flex justify-between items-center mt-1 text-xs text-slate-500">
+                                    <span>{isEvent ? item.startDate : (item.cause || "Volunteer")}</span>
+                                    <span className={isFull ? "text-red-500" : "text-green-600 font-medium"}>
+                                        {spotsLeft} spots left
+                                    </span>
+                                </div>
+                            </div>
+                            <button 
+                                onClick={() => onJoin(item)}
+                                disabled={isFull || loadingId === item.id}
+                                className={`w-full py-1.5 text-xs font-bold rounded flex items-center justify-center gap-1 transition-colors ${
+                                    isFull 
+                                    ? "bg-gray-200 text-gray-400 cursor-not-allowed"
+                                    : "bg-blue-600 text-white hover:bg-blue-700"
+                                }`}
+                            >
+                                {loadingId === item.id ? "Joining..." : isFull ? "Full" : <>Join <FaPlusCircle /></>}
+                            </button>
+                        </div>
+                    );
+                })}
+            </div>
+        )}
+    </motion.div>
+);
+
+// ... (HistoryTimeline, ProfileCard, RankCard, StrengthsRadarChart, RecommendationsCard, fadeInUp remain UNCHANGED)
+// 2. History Timeline
+const HistoryTimeline = ({ history }: { history: any[] }) => (
+    <motion.div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 flex-1" variants={fadeInUp}>
+        <h3 className="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2">
+            <FaClipboardList className="text-blue-500" /> Recent Activity
+        </h3>
+        <div className="space-y-6 relative pl-4 border-l-2 border-slate-100 h-96 overflow-y-auto pr-2 custom-scrollbar">
+            {(!history || history.length === 0) ? (
+                <div className="flex flex-col items-center justify-center h-full text-slate-400">
+                    <FaFlag className="text-3xl mb-2 opacity-30" />
+                    <p className="text-sm italic">No history yet.</p>
+                    <p className="text-xs">Join an opportunity to start!</p>
+                </div>
+            ) : (
+                history.map((item, idx) => {
+                    const ItemIcon = IconMap[item.iconName] || FaCheckCircle;
+                    return (
+                        <div key={idx} className="relative pl-6 pb-2">
+                            <div className="absolute -left-[25px] top-0 bg-white border-2 border-blue-500 rounded-full p-1 text-blue-500 text-xs">
+                                <ItemIcon />
+                            </div>
+                            <span className="text-xs text-slate-400 font-semibold uppercase tracking-wider">{item.date}</span>
+                            <h4 className="font-bold text-slate-800">{item.title}</h4>
+                            <p className="text-sm text-slate-600 mt-1">{item.description}</p>
+                        </div>
+                    );
+                })
+            )}
+        </div>
+    </motion.div>
+);
+
+// 3. Profile Card
 const ProfileCard = ({ details }: { details: any }) => (
   <motion.div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100" variants={fadeInUp}>
     <h3 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
@@ -140,7 +312,7 @@ const ProfileRow = ({ label, value, icon: Icon }: any) => (
     </div>
 );
 
-// 2. Rank Card
+// 4. Rank Card
 const RankCard = ({ rank }: { rank: any }) => {
     const RankIcon = IconMap[rank.iconName] || FaMedal;
     return (
@@ -161,41 +333,12 @@ const RankCard = ({ rank }: { rank: any }) => {
                     </div>
                 </div>
             </div>
-            {/* Decoration */}
             <FaMedal className="absolute -bottom-4 -right-4 text-9xl text-white/5 rotate-12" />
         </motion.div>
     );
 };
 
-// 3. History Timeline
-const HistoryTimeline = ({ history }: { history: any[] }) => (
-    <motion.div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 flex-1" variants={fadeInUp}>
-        <h3 className="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2">
-            <FaClipboardList className="text-blue-500" /> Recent Activity
-        </h3>
-        <div className="space-y-6 relative pl-4 border-l-2 border-slate-100">
-            {history.length === 0 ? (
-                <p className="text-slate-500 text-sm italic">No history yet. Start volunteering!</p>
-            ) : (
-                history.map((item, idx) => {
-                    const ItemIcon = IconMap[item.iconName] || FaCheckCircle;
-                    return (
-                        <div key={idx} className="relative pl-6">
-                            <div className="absolute -left-[25px] top-0 bg-white border-2 border-blue-500 rounded-full p-1 text-blue-500 text-xs">
-                                <ItemIcon />
-                            </div>
-                            <span className="text-xs text-slate-400 font-semibold uppercase tracking-wider">{item.date}</span>
-                            <h4 className="font-bold text-slate-800">{item.title}</h4>
-                            <p className="text-sm text-slate-600 mt-1">{item.description}</p>
-                        </div>
-                    );
-                })
-            )}
-        </div>
-    </motion.div>
-);
-
-// 4. Radar Chart
+// 5. Radar Chart
 const StrengthsRadarChart = ({ strengths }: { strengths: any[] }) => (
     <motion.div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100" variants={fadeInUp}>
         <h3 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
@@ -210,29 +353,6 @@ const StrengthsRadarChart = ({ strengths }: { strengths: any[] }) => (
                     <Radar name="My Skills" dataKey="value" stroke="#2563eb" fill="#3b82f6" fillOpacity={0.5} />
                 </RadarChart>
             </ResponsiveContainer>
-        </div>
-    </motion.div>
-);
-
-// 5. Opportunity Hub
-const OpportunityHub = ({ opportunities }: { opportunities: any[] }) => (
-    <motion.div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100" variants={fadeInUp}>
-        <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-                <FaHandsHelping className="text-blue-500" /> Opportunities
-            </h3>
-            <span className="text-xs font-bold bg-blue-100 text-blue-600 px-2 py-1 rounded-full">{opportunities.length} New</span>
-        </div>
-        <div className="space-y-3">
-            {opportunities.slice(0, 3).map((opp, i) => (
-                <div key={i} className="p-3 rounded-xl border border-slate-100 hover:border-blue-300 hover:shadow-md transition-all cursor-pointer group bg-slate-50/50">
-                    <h4 className="font-bold text-slate-800 text-sm group-hover:text-blue-600 transition-colors">{opp.title}</h4>
-                    <div className="flex justify-between items-center mt-2 text-xs text-slate-500">
-                        <span>{opp.cause}</span>
-                        <span className="text-green-600 font-medium">{opp.slots.total - opp.slots.filled} spots left</span>
-                    </div>
-                </div>
-            ))}
         </div>
     </motion.div>
 );
