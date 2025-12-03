@@ -1,60 +1,66 @@
 "use client";
 
-import { useState, useEffect, useRef, Fragment } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence, Variants } from "framer-motion";
 import { format } from "date-fns";
 import {
   FaCalendarAlt,
   FaMapMarkerAlt,
-  FaChevronLeft,
-  FaChevronRight,
   FaArrowRight
 } from "react-icons/fa";
 import { useLanguage } from "../context/LanguageContext";
 import LanguageToggle from "./LanguageToggle";
 
-// --- Enriched Bilingual Data ---
-const activities = [
-  {
-    id: 1,
-    category: { mn: "Олон нийт", en: "Community" },
-    title: { mn: "Хүүхдийн Цэцэрлэгт Ханын Зураг Зурах", en: "Painting Walls at a Local Kindergarten" },
-    desc: { mn: "Бид хүүхдүүдийн тоглоомын талбайг өнгөөр дүүргэж, тэдний инээмсэглэлийг бэлэглэлээ.", en: "We filled the children's learning space with vibrant colors, bringing creativity and joy to their daily lives." },
-    date: new Date("2025-11-15"),
-    location: { mn: "Улаанбаатар, Баянгол", en: "Ulaanbaatar, Bayangol" },
-    image: "/pic1.png",
-  },
-  {
-    id: 2,
-    category: { mn: "Байгаль орчин", en: "Environment" },
-    title: { mn: "Ойн Тариалалт – Ногоон Монгол", en: "Tree Planting for a Green Mongolia" },
-    desc: { mn: "500 гаруй мод тарьж, ирээдүйн ногоон ирээдүйд хувь нэмрээ орууллаа. Та ч гэсэн бидэнтэй нэгдээрэй!", en: "We planted over 500 saplings, making a lasting contribution to a greener future. Join our next eco-initiative!" },
-    date: new Date("2025-10-28"),
-    location: { mn: "Төв аймаг, Зуунмод", en: "Tuv Province, Zuunmod" },
-    image: "/girl.png",
-  },
-  {
-    id: 3,
-    category: { mn: "Нийгмийн халамж", en: "Social Care" },
-    title: { mn: "Ахмадын Гэрт Хайр Түгээе", en: "Bringing Joy to Elderly Homes" },
-    desc: { mn: "Ахмадуудын гэрт дулаан, хайр, хоол хүргэж, үнэ цэнэтэй мөчүүдийг хамтдаа өнгөрөөлөө.", en: "Delivered warmth, companionship, and essential supplies to the elderly, sharing precious moments together." },
-    date: new Date("2025-10-20"),
-    location: { mn: "Улаанбаатар, Сүхбаатар", en: "Ulaanbaatar, Sukhbaatar" },
-    image: "/vol.png",
-  },
-];
-
-const AUTOPLAY_DURATION = 7000; // 7 seconds for a more cinematic feel
+const AUTOPLAY_DURATION = 7000;
 
 /* ────────────────────── Main Hero Slider Component ────────────────────── */
 const HeadSlider = () => {
   const { language } = useLanguage();
   const [slideIndex, setSlideIndex] = useState(0);
-  const t = (obj: any) => obj[language];
+  const [activities, setActivities] = useState<any[]>([]); // State for DB data
+  const [loading, setLoading] = useState(true);
+  
   const timeoutRef = useRef<any>(null);
 
+  // --- 1. FETCH DATA FROM DB ---
+  useEffect(() => {
+    async function fetchEvents() {
+      try {
+        const res = await fetch("/api/events");
+        const json = await res.json();
+
+        if (json.success && Array.isArray(json.data)) {
+          // Map DB fields to Slider Component fields
+          const mappedEvents = json.data.slice(0, 5).map((evt: any) => ({
+            id: evt.id,
+            // Default category if missing in DB
+            category: { mn: "Арга хэмжээ", en: "Event" }, 
+            title: evt.title,
+            // Use title as desc if desc is missing in DB
+            desc: { 
+                mn: evt.description?.mn || evt.title.mn, 
+                en: evt.description?.en || evt.title.en 
+            }, 
+            date: new Date(evt.startDate), // Convert string to Date object
+            location: evt.location,
+            image: evt.imageUrl || "/data.jpg", // Fallback image
+          }));
+          setActivities(mappedEvents);
+        }
+      } catch (error) {
+        console.error("Failed to fetch slider events:", error);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchEvents();
+  }, []);
+
+  // --- 2. AUTOPLAY LOGIC ---
   const startAutoplay = () => {
+    if (activities.length === 0) return;
     timeoutRef.current = setTimeout(() => {
         setSlideIndex((prevIndex) => (prevIndex + 1) % activities.length);
     }, AUTOPLAY_DURATION);
@@ -63,13 +69,27 @@ const HeadSlider = () => {
   useEffect(() => {
     startAutoplay();
     return () => clearTimeout(timeoutRef.current);
-  }, [slideIndex]);
+  }, [slideIndex, activities]); // Add activities dependency
 
   const goToSlide = (index: number) => {
     clearTimeout(timeoutRef.current);
     setSlideIndex(index);
   };
   
+  const t = (obj: any) => obj ? obj[language] : "";
+
+  // --- 3. LOADING STATE ---
+  if (loading) {
+    return (
+      <section className="h-screen min-h-[700px] bg-slate-900 flex items-center justify-center">
+        <div className="w-16 h-16 border-4 border-violet-500 border-t-transparent rounded-full animate-spin"></div>
+      </section>
+    );
+  }
+
+  // --- 4. EMPTY STATE ---
+  if (activities.length === 0) return null;
+
   const activeSlide = activities[slideIndex];
 
   return (
@@ -79,7 +99,7 @@ const HeadSlider = () => {
         </div>
         
         {/* Background Images */}
-        <AnimatePresence>
+        <AnimatePresence mode="wait">
             <motion.div
                 key={activeSlide.id}
                 initial={{ opacity: 0, scale: 1.15 }}
@@ -105,30 +125,37 @@ const HeadSlider = () => {
                         variants={{ visible: { transition: { staggerChildren: 0.1 }}}}
                         className="max-w-xl text-left"
                     >
-                        <motion.p variants={itemVariants} className="mb-4 text-lg font-semibold text-violet-300 bg-white/10 backdrop-blur-sm px-4 py-1.5 rounded-full inline-block">{t(activeSlide.category)}</motion.p>
+                        <motion.p variants={itemVariants} className="mb-4 text-lg font-semibold text-violet-300 bg-white/10 backdrop-blur-sm px-4 py-1.5 rounded-full inline-block">
+                            {t(activeSlide.category)}
+                        </motion.p>
                         
                         <motion.h1 variants={itemVariants} className="text-4xl md:text-6xl font-black leading-tight mb-6">
-                            {/* Staggered title animation */}
-                            <AnimatePresence>
-                              {t(activeSlide.title).split(" ").map((word: string, i: number) => (
-                                <motion.span key={i} variants={{hidden: {opacity: 0, y: 20}, visible: {opacity: 1, y: 0}}} className="inline-block mr-4">
-                                  {word}
-                                </motion.span>
-                              ))}
-                            </AnimatePresence>
+                            {t(activeSlide.title)}
                         </motion.h1>
                         
-                        <motion.p variants={itemVariants} className="text-lg text-slate-200 mb-8 max-w-lg">{t(activeSlide.desc)}</motion.p>
+                        <motion.p variants={itemVariants} className="text-lg text-slate-200 mb-8 max-w-lg line-clamp-3">
+                            {t(activeSlide.desc)}
+                        </motion.p>
+                        
                         <motion.div variants={itemVariants} className="flex flex-wrap items-center gap-x-6 gap-y-2 text-slate-300 mb-10">
-                            <span className="flex items-center gap-2"><FaCalendarAlt /> {format(activeSlide.date, "yyyy.MM.dd")}</span>
-                            <span className="flex items-center gap-2"><FaMapMarkerAlt /> {t(activeSlide.location)}</span>
+                            <span className="flex items-center gap-2">
+                                <FaCalendarAlt /> 
+                                {activeSlide.date && !isNaN(activeSlide.date.getTime()) 
+                                    ? format(activeSlide.date, "yyyy.MM.dd") 
+                                    : "Upcoming"}
+                            </span>
+                            <span className="flex items-center gap-2">
+                                <FaMapMarkerAlt /> {t(activeSlide.location)}
+                            </span>
                         </motion.div>
+                        
                         <motion.div variants={itemVariants}>
                             <ShinyButton link={`/events/${activeSlide.id}`} text={language === "mn" ? "Дэлгэрэнгүй" : "Learn More"} />
                         </motion.div>
                     </motion.div>
                 </AnimatePresence>
             </div>
+             
              {/* Right Column: Navigation */}
              <div className="hidden lg:block col-span-5">
                 <VerticalPagination items={activities} currentIndex={slideIndex} onSelect={goToSlide} language={language} />
@@ -172,7 +199,7 @@ const VerticalPagination: React.FC<{ items: any[], currentIndex: number, onSelec
                     0{index + 1}
                 </p>
                 <p className={`text-sm transition-colors ${index === currentIndex ? 'text-violet-300' : 'text-slate-500 group-hover:text-slate-300'}`}>
-                    {item.category[language]}
+                    {item.title[language]}
                 </p>
                 <div className="mt-2 w-full h-1 bg-white/20 rounded-full overflow-hidden">
                    <motion.div
@@ -186,6 +213,5 @@ const VerticalPagination: React.FC<{ items: any[], currentIndex: number, onSelec
         ))}
     </div>
 );
-
 
 export default HeadSlider;
