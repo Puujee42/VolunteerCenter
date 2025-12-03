@@ -3,13 +3,20 @@ import { NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
 
-export async function GET(request: Request, { params }: { params: { id: string } }) {
+export async function GET(
+  request: Request,
+  // 1. Update type to Promise
+  { params }: { params: Promise<{ id: string }> }
+) {
   try {
-    const userId = params.id; // Get "user-1" from URL
+    // 2. Await params to get the ID
+    const { id } = await params;
+    const userId = id; 
+
     const client = await clientPromise;
     const db = client.db("volunteer_db");
     
-    // Fetch the user profile by userId (not _id)
+    // Fetch the user profile by userId
     const user = await db.collection("users").findOne({ userId: userId });
 
     if (!user) {
