@@ -10,12 +10,15 @@ async function checkAdmin() {
   return user;
 }
 
+// ... imports
+
 export async function POST(req: Request) {
   try {
     await checkAdmin();
     const body = await req.json();
     
-    const { type, titleMn, titleEn, descMn, descEn, date, locationMn, locationEn, capacity } = body;
+    // ✅ Receive imageUrl
+    const { type, titleMn, titleEn, descMn, descEn, date, locationMn, locationEn, capacity, imageUrl } = body;
 
     const client = await clientPromise;
     const db = client.db("volunteer_db");
@@ -27,32 +30,28 @@ export async function POST(req: Request) {
       location: { mn: locationMn, en: locationEn },
       addedDate: new Date().toISOString().split('T')[0],
       status: 'open',
+      imageUrl: imageUrl || "/data.jpg", // ✅ Save the image URL (base64 string)
     };
 
     if (type === "event") {
-      // ... Event logic remains the same ...
       const eventDoc = {
         ...newItem,
         startDate: date,
         deadline: date, 
         registered: 0,
         capacity: parseInt(capacity),
-        imageUrl: "/data.jpg"
       };
       await db.collection("events").insertOne(eventDoc);
     } else {
-      // ✅ FIX: Volunteer Logic
       const volDoc = {
         ...newItem,
         registrationStart: new Date().toISOString().split('T')[0],
         registrationEnd: date,
-        // Ensure this structure matches your Seed Data structure
         organization: "VCM", 
-        city: locationEn || "Ulaanbaatar", // Fallback for filtering
+        city: locationEn || "Ulaanbaatar", 
         slots: { filled: 0, total: parseInt(capacity) },
         icon: "FaHandsHelping"
       };
-      // ✅ FIX: Insert into "volunteers" collection
       await db.collection("volunteers").insertOne(volDoc);
     }
 
@@ -61,7 +60,6 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: error.message }, { status: 403 });
   }
 }
-
 export async function DELETE(req: Request) {
   try {
     await checkAdmin();

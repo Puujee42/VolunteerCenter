@@ -1,9 +1,17 @@
 import type { NextConfig } from "next";
 
-/** @type {import('next').NextConfig} */
-const nextConfig: NextConfig = {
-  reactStrictMode: false,
-  /* other config options here */
+const nextConfig = {
+  // Add this 'images' configuration
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'res.cloudinary.com',
+        port: '',
+        pathname: '**', // Allow any path from this host
+      },
+    ],
+  },
 };
 
-export default nextConfig;
+module.exports = nextConfig;

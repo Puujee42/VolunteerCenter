@@ -19,6 +19,7 @@ const sidebarText = {
     events: "Арга хэмжээ",
     opportunities: "Сайн дурын ажил",
     settings: "Тохиргоо",
+    content: "Агуулга удирдах",
     role: "Супер Админ",
     signout: "Гарах",
     switchLang: "English"
@@ -30,6 +31,7 @@ const sidebarText = {
     events: "Events",
     opportunities: "Opportunities",
     settings: "Settings",
+    content: "Content Management",
     role: "Super Admin",
     signout: "Sign Out",
     switchLang: "Монгол хэл"
@@ -62,6 +64,7 @@ export default function AdminSidebar({ user }: SidebarProps) {
         <NavItem href="/admin" icon={FaChartLine} label={t.dashboard} active={pathname === "/admin"} />
         <NavItem href="/admin/users" icon={FaUsers} label={t.users} active={pathname.startsWith("/admin/users")} />
         <NavItem href="/admin/events" icon={FaCalendarAlt} label={t.events} active={pathname.startsWith("/admin/events")} />
+        <NavItem href="/admin/content" icon={FaChartLine} label={t.content} active={pathname.startsWith("/admin/content")} />
         <NavItem href="/admin/opportunities" icon={FaHandsHelping} label={t.opportunities} active={pathname.startsWith("/admin/opportunities")} />
         <NavItem href="/admin/settings" icon={FaCog} label={t.settings} active={pathname.startsWith("/admin/settings")} />
       </nav>

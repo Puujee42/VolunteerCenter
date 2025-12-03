@@ -6,6 +6,7 @@ import { motion } from "framer-motion";
 import { FaPlay, FaHeadphones } from "react-icons/fa";
 import Image from "next/image";
 import Footer from "../components/Footer";
+import Link from "next/link"; // Import Link
 
 export default function PodcastsPage() {
   const { language } = useLanguage();
@@ -51,21 +52,23 @@ export default function PodcastsPage() {
               className="bg-white rounded-xl shadow-lg overflow-hidden border border-slate-100 hover:shadow-2xl transition-all"
             >
               {/* Cover Image */}
-              <div className="relative h-48 w-full bg-slate-200">
-                {pod.cover && (
-                  <Image 
-                    src={pod.cover} 
-                    alt={pod.title[language]} 
-                    layout="fill" 
-                    objectFit="cover" 
-                  />
-                )}
-                <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
-                   <button className="bg-white p-4 rounded-full text-blue-600 shadow-lg">
-                     <FaPlay />
-                   </button>
+              <Link href={`/podcasts/${pod.id}`}>
+                <div className="relative h-48 w-full bg-slate-200 cursor-pointer">
+                  {pod.cover && (
+                    <Image 
+                      src={pod.cover} 
+                      alt={pod.title[language]} 
+                      layout="fill" 
+                      objectFit="cover" 
+                    />
+                  )}
+                  <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
+                     <div className="bg-white p-4 rounded-full text-blue-600 shadow-lg">
+                       <FaPlay />
+                     </div>
+                  </div>
                 </div>
-              </div>
+              </Link>
 
               <div className="p-6">
                 <div className="flex justify-between items-center mb-2 text-xs text-slate-500">
@@ -78,9 +81,13 @@ export default function PodcastsPage() {
                 <p className="text-slate-600 text-sm mb-4 line-clamp-3">
                   {pod.description[language]}
                 </p>
-                <button className="w-full py-2 border border-blue-600 text-blue-600 font-semibold rounded-lg hover:bg-blue-600 hover:text-white transition-colors">
+                {/* ✅ CHANGE <button> to <Link> */}
+                <Link 
+                  href={`/podcasts/${pod.id}`} 
+                  className="w-full py-2 block text-center border border-blue-600 text-blue-600 font-semibold rounded-lg hover:bg-blue-600 hover:text-white transition-colors"
+                >
                   {t[language].listen}
-                </button>
+                </Link>
               </div>
             </motion.div>
           ))}
