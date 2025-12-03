@@ -2,11 +2,26 @@
 
 import { motion, useMotionValue, useSpring, useTransform } from "framer-motion";
 import { useLanguage } from "../context/LanguageContext";
-import React, { useState } from "react";
-import { FaCalendarAlt, FaRegCalendarCheck, FaBuilding, FaMapMarkerAlt, FaUsers, FaMask, FaLeaf, FaFutbol, FaQuestionCircle, FaSearch } from "react-icons/fa";
+import React, { useState, useEffect } from "react";
+import { 
+  FaCalendarAlt, FaRegCalendarCheck, FaBuilding, FaMapMarkerAlt, 
+  FaUsers, FaMask, FaLeaf, FaFutbol, FaQuestionCircle, FaSearch, 
+  FaHandsHelping // Default icon fallback
+} from "react-icons/fa";
 
-// --- DATA (structure remains unchanged) ---
-const volunteersData = {
+// --- 1. ICON MAPPER ---
+// Since MongoDB stores icons as strings ("FaLeaf"), we need to map them back to components.
+const IconMap: any = {
+  FaLeaf,
+  FaUsers,
+  FaMask,
+  FaFutbol,
+  FaQuestionCircle,
+  FaHandsHelping
+};
+
+// --- 2. STATIC UI TEXT (Labels only, data comes from DB) ---
+const uiText = {
     mn: {
       sectionTitle: "Сайн дурын ажлын боломжууд",
       intro: "Өөрийн ур чадвар, хүсэл сонирхолд тохирох үйл ажиллагааг олж, нийгэмдээ эерэг нөлөө үзүүлээрэй.",
@@ -14,14 +29,7 @@ const volunteersData = {
       countLabel: "боломж байна",
       buttonText: "Дэлгэрэнгүй",
       labels: { registration: "Бүртгэл", added: "Нийтэлсэн", organization: "Байгууллага", city: "Байршил" },
-      volunteers: [
-        { id: 1, title: "Байгаль орчны цэвэрлэгээ", description: "Орон нутгийн цэцэрлэгт хүрээлэн, гол мөрнийг цэвэрлэх ажилд нэгдээрэй.", registrationStart: "2025-10-01", registrationEnd: "2025-11-01", addedDate: "2025-09-15", organization: "Байгаль орчны агентлаг", enrollLink: "#", icon: FaLeaf, isNew: true, city: "Улаанбаатар" },
-        { id: 2, title: "Залуучуудын Инновацийн Хакатон", description: "Залуу оюун ухаанд зөвлөгөө өгч, шийдэл бүтээхэд нь туслаарай.", registrationStart: "2025-11-10", registrationEnd: "2025-11-20", addedDate: "2025-10-01", organization: "Монголын Тек", enrollLink: "#", icon: FaUsers, isNew: true, city: "Эрдэнэт" },
-        { id: 3, title: "Олон нийтийн эрүүл мэндийн аян", description: "Орон нутгийн эрүүл мэндийн үзлэгт эмнэлгийн мэргэжилтнүүдэд туслаарай.", registrationStart: "2025-09-01", registrationEnd: "2025-09-30", addedDate: "2025-08-20", organization: "Эрүүл мэндийн газар", enrollLink: "#", icon: FaMask, isNew: false, city: "Дархан" },
-        { id: 4, title: "Улсын наадмын туслах ажилтан", description: "Улсын хэмжээний томоохон спортын арга хэмжээг зохион байгуулахад туслаарай.", registrationStart: "2025-12-01", registrationEnd: "2025-12-15", addedDate: "2025-11-01", organization: "Спортын холбоо", enrollLink: "#", icon: FaFutbol, isNew: true, city: "Чойбалсан" },
-        { id: 5, title: "Жилийн төлөвлөгөөний хороо", description: "Бидний ирэх жилийн төлөвлөгөөг боловсруулахад стратегийн ур чадвараа ашиглан туслаарай.", registrationStart: "2025-11-12", registrationEnd: "2025-12-08", addedDate: "2025-11-10", organization: "VCM-ийн төв оффис", enrollLink: "#", icon: FaQuestionCircle, isNew: false, city: "Улаанбаатар" },
-        { id: 6, title: "Цахим боловсролын сургагч багш", description: "Ахмад настнуудад компьютерийн анхан шатны мэдлэг олгох.", registrationStart: "2025-10-05", registrationEnd: "2025-10-25", addedDate: "2025-09-20", organization: "Олон нийтийн холбоо", enrollLink: "#", icon: FaUsers, isNew: false, city: "Улаанбаатар" },
-      ],
+      new: "ШИНЭ"
     },
     en: {
       sectionTitle: "Volunteer Opportunities",
@@ -30,14 +38,7 @@ const volunteersData = {
       countLabel: "Opportunities",
       buttonText: "View Details",
       labels: { registration: "Registration", added: "Date Added", organization: "Organization", city: "Location" },
-      volunteers: [
-        { id: 1, title: "Environmental Cleanup", description: "Join us to clean up local parks and rivers.", registrationStart: "2025-10-01", registrationEnd: "2025-11-01", addedDate: "2025-09-15", organization: "Environmental Agency", enrollLink: "#", icon: FaLeaf, isNew: true, city: "Ulaanbaatar" },
-        { id: 2, title: "Youth Innovation Hackathon", description: "Mentor young minds and help them build solutions.", registrationStart: "2025-11-10", registrationEnd: "2025-11-20", addedDate: "2025-10-01", organization: "Tech for Mongolia", enrollLink: "#", icon: FaUsers, isNew: true, city: "Erdenet" },
-        { id: 3, title: "Community Health Drive", description: "Assist medical professionals in local health checks.", registrationStart: "2025-09-01", registrationEnd: "2025-09-30", addedDate: "2025-08-20", organization: "Health Department", enrollLink: "#", icon: FaMask, isNew: false, city: "Darkhan" },
-        { id: 4, title: "National Games Support Staff", description: "Help coordinate a major national sports event.", registrationStart: "2025-12-01", registrationEnd: "2025-12-15", addedDate: "2025-11-01", organization: "Sports Federation", enrollLink: "#", icon: FaFutbol, isNew: true, city: "Choibalsan" },
-        { id: 5, title: "Annual Planning Committee", description: "Lend your strategic skills to help plan our next year.", registrationStart: "2025-11-12", registrationEnd: "2025-12-08", addedDate: "2025-11-10", organization: "VCM Headquarters", enrollLink: "#", icon: FaQuestionCircle, isNew: false, city: "Ulaanbaatar" },
-        { id: 6, title: "Digital Literacy Tutor", description: "Teach essential computer skills to elderly citizens.", registrationStart: "2025-10-05", registrationEnd: "2025-10-25", addedDate: "2025-09-20", organization: "Community Connect", enrollLink: "#", icon: FaUsers, isNew: false, city: "Ulaanbaatar" },
-      ],
+      new: "NEW"
     },
 };
 
@@ -46,46 +47,80 @@ const allCities = {
     en: ['Ulaanbaatar', 'Erdenet', 'Darkhan', 'Choibalsan'],
 };
 
-// --- 2. THE MAIN PAGE COMPONENT ---
-
+// --- 3. MAIN COMPONENT ---
 const VolunteersSection = () => {
     const { language } = useLanguage();
-    const t = volunteersData[language];
+    const t = uiText[language];
     const cities = allCities[language];
 
+    // State
+    const [volunteers, setVolunteers] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedCity, setSelectedCity] = useState('');
 
-    const filteredVolunteers = t.volunteers.filter(v => 
-        (v.title.toLowerCase().includes(searchTerm.toLowerCase()) || v.description.toLowerCase().includes(searchTerm.toLowerCase())) &&
-        (!selectedCity || v.city === selectedCity)
-    );
+    // Fetch Data from API
+    useEffect(() => {
+        async function fetchData() {
+            try {
+                const res = await fetch("/api/volunteers");
+                const json = await res.json();
+                if (json.success) {
+                    setVolunteers(json.data);
+                }
+            } catch (error) {
+                console.error("Failed to fetch volunteers", error);
+            } finally {
+                setLoading(false);
+            }
+        }
+        fetchData();
+    }, []);
+
+    // Filter Logic
+    const filteredVolunteers = volunteers.filter(v => {
+        // Handle bilingual data safely
+        const title = v.title?.[language] || "";
+        const desc = v.description?.[language] || "";
+        
+        const matchesSearch = title.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                              desc.toLowerCase().includes(searchTerm.toLowerCase());
+        const matchesCity = !selectedCity || v.city === selectedCity; // Note: Ensure DB city matches dropdown values or adjust logic
+        
+        return matchesSearch && matchesCity;
+    });
+
+    if (loading) return <div className="py-24 text-center">Loading Opportunities...</div>;
 
     return (
         <section className="py-24 bg-white text-slate-800 relative overflow-hidden">
-            {/* Subtle Dot Grid Background */}
+            {/* Background Pattern */}
             <div className="absolute inset-0 z-0 bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:2rem_2rem]"></div>
             
             <div className="container px-4 mx-auto max-w-7xl relative z-10">
                 <HeroHeader t={t} total={filteredVolunteers.length} cities={cities} setSearchTerm={setSearchTerm} setSelectedCity={setSelectedCity} />
 
                 <motion.div
-                    key={language + selectedCity + searchTerm}
+                    key={language + selectedCity + searchTerm} // Re-animate on filter change
                     initial="hidden"
                     animate="visible"
                     variants={{ hidden: {}, visible: { transition: { staggerChildren: 0.1 } } }}
                     className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8"
                 >
                     {filteredVolunteers.map((volunteer) => (
-                        <VolunteerCard key={volunteer.id} volunteer={volunteer} t={t} />
+                        <VolunteerCard key={volunteer._id} volunteer={volunteer} t={t} language={language} />
                     ))}
                 </motion.div>
+
+                {filteredVolunteers.length === 0 && (
+                    <div className="text-center text-slate-500 mt-10">No opportunities found.</div>
+                )}
             </div>
         </section>
     );
 };
 
-// --- 3. SUB-COMPONENTS ---
+// --- 4. SUB-COMPONENTS ---
 
 const HeroHeader: React.FC<any> = ({ t, total, cities, setSearchTerm, setSelectedCity }) => (
     <motion.div
@@ -94,12 +129,21 @@ const HeroHeader: React.FC<any> = ({ t, total, cities, setSearchTerm, setSelecte
         transition={{ duration: 0.8, ease: "easeOut" }}
         className="text-center mb-16"
     >
-        <h1 className="text-4xl md:text-6xl font-bold mb-4 bg-gradient-to-r from-blue-600 via-cyan-500 to-indigo-600 bg-clip-text text-transparent">{t.sectionTitle}</h1>
+        <h1 className="text-4xl md:text-6xl font-bold mb-4 bg-gradient-to-r from-blue-600 via-cyan-500 to-indigo-600 bg-clip-text text-transparent">
+            {t.sectionTitle}
+        </h1>
         <p className="text-lg text-slate-600 max-w-3xl mx-auto mb-8">{t.intro}</p>
+        
+        {/* Search Bar */}
         <div className="max-w-4xl mx-auto bg-white border border-slate-200 rounded-xl p-4 shadow-lg flex flex-col md:flex-row items-center gap-4">
             <div className="relative w-full md:flex-1">
                 <FaSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
-                <input type="text" placeholder={t.filterLabels.search} onChange={(e) => setSearchTerm(e.target.value)} className="w-full bg-slate-100 border border-slate-300 rounded-lg py-3 pl-12 pr-4 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition" />
+                <input 
+                    type="text" 
+                    placeholder={t.filterLabels.search} 
+                    onChange={(e) => setSearchTerm(e.target.value)} 
+                    className="w-full bg-slate-100 border border-slate-300 rounded-lg py-3 pl-12 pr-4 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition" 
+                />
             </div>
             <div className="relative w-full md:w-auto">
                 <FaMapMarkerAlt className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
@@ -115,10 +159,14 @@ const HeroHeader: React.FC<any> = ({ t, total, cities, setSearchTerm, setSelecte
     </motion.div>
 );
 
-const VolunteerCard: React.FC<{ volunteer: any, t: any }> = ({ volunteer, t }) => {
-    const { icon: Icon } = volunteer;
+const VolunteerCard: React.FC<{ volunteer: any, t: any, language: string }> = ({ volunteer, t, language }) => {
+    // Convert string icon name from DB to React Component
+    const Icon = IconMap[volunteer.icon] || FaHandsHelping;
 
-    // --- 3D Tilt Effect Logic ---
+    // Check if added recently (simple logic: isNew isn't in seed, so we can check dates or default to false)
+    const isNew = false; 
+
+    // 3D Tilt Logic
     const mouseX = useMotionValue(0);
     const mouseY = useMotionValue(0);
 
@@ -138,32 +186,42 @@ const VolunteerCard: React.FC<{ volunteer: any, t: any }> = ({ volunteer, t }) =
         <motion.div
             variants={{ hidden: { opacity: 0, y: 50 }, visible: { opacity: 1, y: 0 } }}
             transition={{ duration: 0.6, ease: "easeOut" }}
-            style={{ perspective: "1000px" }} // Parent needs perspective for 3D effect
+            style={{ perspective: "1000px" }}
         >
             <motion.div
                 onMouseMove={handleMouseMove}
-                onMouseLeave={() => { mouseX.set(175); mouseY.set(225); }} // Reset to center
+                onMouseLeave={() => { mouseX.set(175); mouseY.set(225); }}
                 style={{ rotateX: springRotateX, rotateY: springRotateY, transformStyle: "preserve-3d" }}
                 className="group relative bg-white rounded-2xl p-8 flex flex-col h-[450px] border border-slate-200 shadow-lg transition-all duration-300 hover:shadow-2xl hover:-translate-y-2"
             >
-                {volunteer.isNew && <div className="absolute top-4 right-4 bg-blue-500 text-white px-3 py-1 rounded-full text-xs font-bold shadow-lg shadow-blue-500/50">NEW</div>}
+                {isNew && (
+                    <div className="absolute top-4 right-4 bg-blue-500 text-white px-3 py-1 rounded-full text-xs font-bold shadow-lg shadow-blue-500/50">
+                        {t.new}
+                    </div>
+                )}
                 
-                <div style={{ transform: "translateZ(20px)" }}> {/* Make content "pop out" */}
+                <div style={{ transform: "translateZ(20px)" }}>
                     <div className="flex items-center gap-4 mb-4">
-                        <div className="p-3 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl text-white shadow-lg"><Icon className="text-2xl" /></div>
-                        <h3 className="text-xl font-bold text-slate-800 leading-tight flex-1">{volunteer.title}</h3>
+                        <div className="p-3 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl text-white shadow-lg">
+                            <Icon className="text-2xl" />
+                        </div>
+                        <h3 className="text-xl font-bold text-slate-800 leading-tight flex-1">
+                            {volunteer.title[language]}
+                        </h3>
                     </div>
 
-                    <p className="text-slate-600 flex-grow mb-6">{volunteer.description}</p>
+                    <p className="text-slate-600 flex-grow mb-6 line-clamp-4">
+                        {volunteer.description[language]}
+                    </p>
                 </div>
                 
                 <div className="mt-auto border-t border-slate-200 pt-6 space-y-3 text-sm" style={{ transform: "translateZ(10px)" }}>
-                    <InfoRow icon={FaRegCalendarCheck} label={t.labels.registration} value={`${volunteer.registrationStart} to ${volunteer.registrationEnd}`} />
+                    <InfoRow icon={FaRegCalendarCheck} label={t.labels.registration} value={`${volunteer.registrationStart} - ${volunteer.registrationEnd}`} />
                     <InfoRow icon={FaBuilding} label={t.labels.organization} value={volunteer.organization} />
                     <InfoRow icon={FaMapMarkerAlt} label={t.labels.city} value={volunteer.city} />
                 </div>
 
-                <a href={volunteer.enrollLink} className="mt-8 w-full block text-center bg-blue-600 text-white font-bold py-3 px-6 rounded-lg shadow-lg hover:shadow-blue-500/40 hover:bg-blue-700 transition-all duration-300" style={{ transform: "translateZ(20px)" }}>
+                <a href={`/volunteers/${volunteer.id}`} className="mt-8 w-full block text-center bg-blue-600 text-white font-bold py-3 px-6 rounded-lg shadow-lg hover:shadow-blue-500/40 hover:bg-blue-700 transition-all duration-300" style={{ transform: "translateZ(20px)" }}>
                     {t.buttonText}
                 </a>
             </motion.div>

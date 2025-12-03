@@ -4,6 +4,7 @@ import HeadSlider from "./components/HeadSlider";
 import StatsAndEvents from "./components/StatsAndEvents";
 import TeamSection from "./components/TeamSection";
 import PartnersSection from "./components/PartnersSection";
+import Footer from "./components/Footer";
 export default function Home() {
   return (
     <>
@@ -12,6 +13,7 @@ export default function Home() {
       <StatsAndEvents />
       <TeamSection />
       <PartnersSection />
+      <Footer />
     </>
   );
 }

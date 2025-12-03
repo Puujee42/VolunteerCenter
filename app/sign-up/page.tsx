@@ -2,10 +2,10 @@
 
 import { motion, Variants } from "framer-motion";
 import { useLanguage } from "../context/LanguageContext";
-import React, { useState, useMemo, useEffect } from "react"; // Added useEffect
+import React, { useState, useMemo } from "react";
 import Link from "next/link";
 import { FaUser, FaLock, FaMapMarkerAlt, FaBirthdayCake, FaEnvelope } from "react-icons/fa";
-import { mongolianLocations } from "./location";
+import { mongolianLocations } from "./location"; // Adjust path if needed
 import { SignedOut, useSignUp } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 
@@ -14,7 +14,7 @@ const registerData = {
     mn: {
         heroQuote: "Өөрчлөлтийн нэг хэсэг болж, нийгэмдээ гэрэл нэмээрэй.",
         title: "Шинэ бүртгэл үүсгэх",
-        idPlaceholder: "Хэрэglэгчийн ID",
+        idPlaceholder: "Хэрэглэгчийн ID",
         emailPlaceholder: "Имэйл хаяг",
         passwordPlaceholder: "Нууц үг",
         confirmPasswordPlaceholder: "Нууц үг давтах",
@@ -45,6 +45,16 @@ const registerData = {
         loginPrompt: "Already have an account?",
         loginLink: "Sign In",
     },
+};
+
+// --- Animations ---
+const staggerContainer = { 
+    hidden: { opacity: 0 }, 
+    visible: { opacity: 1, transition: { staggerChildren: 0.08 } } 
+};
+const itemVariants: Variants = { 
+    hidden: { opacity: 0, y: 20 }, 
+    visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: "easeOut" } } 
 };
 
 // --- Main Register Page Component ---
@@ -87,12 +97,12 @@ const RegisterPage = () => {
 };
 
 // --- Sub-Components ---
-// --- Sub-Components ---
+
 const RegisterForm: React.FC<{ t: any }> = ({ t }) => {
     const { isLoaded, signUp, setActive } = useSignUp();
     const router = useRouter();
     
-    // State remains the same
+    // State Variables
     const [username, setUsername] = useState("");
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
@@ -106,15 +116,14 @@ const RegisterForm: React.FC<{ t: any }> = ({ t }) => {
     const [pendingVerification, setPendingVerification] = useState(false);
     const [code, setCode] = useState("");
 
+    // Dynamic Districts
     const districts = useMemo(() => {
         if (!selectedProvince) return [];
         const province = mongolianLocations.find(p => p.name === selectedProvince);
         return province ? province.districts : [];
     }, [selectedProvince]);
-    
-    // --- THE useEffect HOOK HAS BEEN COMPLETELY REMOVED ---
 
-    // Main Sign-Up Logic
+    // --- 1. Handle Submit (Creates Clerk Account) ---
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!isLoaded || isLoading) return;
@@ -132,6 +141,7 @@ const RegisterForm: React.FC<{ t: any }> = ({ t }) => {
                 emailAddress: email,
                 username,
                 password,
+                // We keep unsafeMetadata as a backup/reference in Clerk
                 unsafeMetadata: {
                     age: parseInt(age, 10),
                     province: selectedProvince,
@@ -151,7 +161,7 @@ const RegisterForm: React.FC<{ t: any }> = ({ t }) => {
         }
     };
 
-    // Verification Logic
+    // --- 2. Handle Verify (Syncs to MongoDB & Logs In) ---
     const handleVerify = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!isLoaded || isLoading) return;
@@ -163,11 +173,34 @@ const RegisterForm: React.FC<{ t: any }> = ({ t }) => {
             const result = await signUp.attemptEmailAddressVerification({ code });
 
             if (result.status === "complete") {
-                // SUCCESS: Set session and redirect
+                // A. Set the session (Log the user in on Clerk)
                 await setActive({ session: result.createdSessionId });
+
+                // B. SYNC TO MONGODB
+                // Call the API route we created to insert user data into Mongo
+                try {
+                    const syncResponse = await fetch('/api/user/sync', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            age, 
+                            province: selectedProvince,
+                            district: selectedDistrict,
+                            program: selectedProgram
+                        })
+                    });
+
+                    if (!syncResponse.ok) {
+                        console.error("Database sync warning: API returned non-200 status.");
+                    }
+                } catch (syncErr) {
+                    console.error("Database sync error:", syncErr);
+                    // We don't block login if sync fails, but user might have empty dashboard
+                }
+
+                // C. Redirect to Dashboard
                 router.push("/dashboard");
             } else {
-                // This case is unlikely but handled
                 console.log("Unexpected verification status:", result.status);
                 setError("Verification did not complete. Please try signing in.");
             }
@@ -179,12 +212,11 @@ const RegisterForm: React.FC<{ t: any }> = ({ t }) => {
         }
     };
 
-    // --- The rest of the component (the JSX) is unchanged ---
-
+    // --- Pending Verification View ---
     if (pendingVerification) {
         return (
             <form onSubmit={handleVerify} className="space-y-5">
-                <p className="text-center text-slate-600">Please enter the verification code sent to {email}.</p>
+                <p className="text-center text-slate-600">Please enter the verification code sent to <strong>{email}</strong>.</p>
                 <motion.div variants={itemVariants}>
                     <InputField 
                         type="text" 
@@ -206,6 +238,7 @@ const RegisterForm: React.FC<{ t: any }> = ({ t }) => {
         );
     }
 
+    // --- Standard Registration Form View ---
     return (
         <form onSubmit={handleSubmit} className="space-y-5">
             <motion.div variants={itemVariants}>
@@ -264,7 +297,9 @@ const RegisterForm: React.FC<{ t: any }> = ({ t }) => {
         </form>
     );
 };
-// --- Your unchanged InputField and SelectField components go here ---
+
+// --- Helper Components ---
+
 const InputField: React.FC<any> = ({ icon: Icon, ...props }) => (
     <div className="relative">
         <Icon className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
@@ -292,8 +327,5 @@ const SelectField: React.FC<{
         </div>
     </div>
 );
-
-const staggerContainer = { hidden: { opacity: 0 }, visible: { opacity: 1, transition: { staggerChildren: 0.08 } } };
-const itemVariants:Variants = { hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: "easeOut" } } };
 
 export default RegisterPage;

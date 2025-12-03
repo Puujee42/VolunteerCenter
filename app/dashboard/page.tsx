@@ -1,38 +1,57 @@
 import { currentUser } from '@clerk/nextjs/server';
-import DashboardClient from './DashboardClient'; // No change here
+import clientPromise from "@/lib/mongo/mongodb";
+import DashboardClient from './DashboardClient';
+import { redirect } from 'next/navigation';
 
-// This remains an async Server Component
+export const dynamic = "force-dynamic";
+
 export default async function DashboardPage() {
-  const user = await currentUser();
+  let user;
 
-  if (!user) {
-    return <div>You are not logged in.</div>;
+  try {
+    // 1. Safe Authentication Check
+    user = await currentUser();
+  } catch (err) {
+    // If Clerk throws an error (like 404), force a logout/redirect
+    console.error("Clerk Auth Error:", err);
+    redirect('/sign-in');
   }
 
-  // Access the custom metadata
-  const metadata = user.unsafeMetadata || {};
-  const age = metadata.age as number || 'Not provided';
-  const province = metadata.province as string || 'Not provided';
-  const district = metadata.district as string || 'Not provided';
-  const program = metadata.program as string || 'Not provided';
+  // If not logged in, redirect
+  if (!user) {
+    redirect('/sign-in');
+  }
 
-  // --- SOLUTION ---
-  // Create a new, "plain" object with only the data you need to pass.
-  // This object is serializable and safe to send to a Client Component.
+  const client = await clientPromise;
+  const db = client.db("volunteer_db");
+
+  // 2. Fetch User from MongoDB with Retry Logic
+  // Sometimes Mongo is slow to index the new user after registration
+  let userProfile = null;
+  for (let i = 0; i < 3; i++) {
+    userProfile = await db.collection("users").findOne({ userId: user.id });
+    if (userProfile) break; 
+    await new Promise(resolve => setTimeout(resolve, 500)); // Wait 500ms
+  }
+  
+  const opportunities = await db.collection("opportunities").find({}).toArray();
+
+  // 3. Serialization
+  const serializedProfile = userProfile ? JSON.parse(JSON.stringify(userProfile)) : null;
+  const serializedOpportunities = JSON.parse(JSON.stringify(opportunities));
+
   const simpleUser = {
     id: user.id,
-    firstName: user.firstName,
+    firstName: user.firstName || user.username || "Volunteer",
     username: user.username,
+    imageUrl: user.imageUrl, 
   };
 
   return (
-    // Pass the new, simple object as the 'user' prop
     <DashboardClient
       user={simpleUser}
-      age={age}
-      province={province}
-      district={district}
-      program={program}
+      dbUser={serializedProfile}
+      opportunities={serializedOpportunities}
     />
   );
 }

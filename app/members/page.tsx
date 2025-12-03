@@ -7,7 +7,8 @@ import Layout from "../layout";
 export default function IntroductionPage() {
   return (
     <>
-        <Members />
+      <Members />
+      <Footer />
     </>
   );
 }
