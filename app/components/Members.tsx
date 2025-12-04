@@ -38,7 +38,7 @@ const teamData = {
     members: [
       { name: "Б. Цэвэлмаа", title: "Үүсгэн байгуулагч, Зөвлөх", image: "/tsev.png", socials: { linkedin: "#", twitter: "#" } },
       { name: "Х. Сэлэнгэ", title: "Гүйцэтгэх захирал", image: "/selenge.jpg", socials: { linkedin: "#", facebook: "#" } },
-      { name: "Cheris Thomason", title: "Хөтөлбөр хөгжүүлэгч", image: "/selenge.jpg", socials: { linkedin: "#" } },
+      { name: "Cheris Thomason", title: "Хөтөлбөр хөгжүүлэгч", image: "/thompson.jpg", socials: { linkedin: "#" } },
       { name: "Б. Инж", title: "Хөтөлбөр зохицуулагч", image: "/data.jpg", socials: { twitter: "#", facebook: "#" } },
     ] as TeamMember[],
   },
@@ -50,46 +50,17 @@ const teamData = {
     members: [
       { name: "B. Tsevelmaa", title: "Founder & Consultant", image: "/tsev.png", socials: { linkedin: "#", twitter: "#" } },
       { name: "Kh. Selenge", title: "Executive Director", image: "/selenge.jpg", socials: { linkedin: "#", facebook: "#" } },
-      { name: "Cheris Thomason", title: "Program Developer", image: "/selenge.jpg", socials: { linkedin: "#" } },
+      { name: "Cheris Thomason", title: "Program Developer", image: "/thompson.jpg", socials: { linkedin: "#" } },
       { name: "B. Inju", title: "Program Coordinator", image: "/data.jpg", socials: { twitter: "#", facebook: "#" } },
     ] as TeamMember[],
   },
 };
 
-const volunteersData = {
-    mn: {
-      sectionTitle: "Сүүлийн үеийн боломжууд",
-      subtitle: "Таны ур чадвар хэрэгтэй байна. Өнөөдөр нэгдэж, өөрчлөлтийг бүтээгээрэй.",
-      ctaText: "Бүх боломжийг харах",
-      ctaLink: "/volunteers",
-      buttonText: "Дэлгэрэнгүй",
-      labels: { registration: "Бүртгэл", organization: "Байгууллага", city: "Байршил" },
-      volunteers: [
-        { id: 1, title: "Байгаль орчны цэвэрлэгээ", description: "Орон нутгийн цэцэрлэгт хүрээлэн, гол мөрнийг цэвэрлэхэд нэгдээрэй.", registrationStart: "2025-10-01", registrationEnd: "2025-11-01", organization: "Байгаль орчны агентлаг", city: "Улаанбаатар", isNew: true, icon: FaLeaf, enrollLink: "#" },
-        { id: 2, title: "Залуучуудын Инновацийн Хакатон", description: "Залуу оюун ухаанд зөвлөгөө өгч, шийдэл бүтээхэд нь туслаарай.", registrationStart: "2025-11-10", registrationEnd: "2025-11-20", organization: "Монголын Тек", city: "Эрдэнэт", isNew: true, icon: FaUsers, enrollLink: "#" },
-        { id: 4, title: "Улсын наадмын туслах ажилтан", description: "Улсын хэмжээний томоохон спортын арга хэмжээг зохион байгуулахад туслаарай.", registrationStart: "2025-12-01", registrationEnd: "2025-12-15", organization: "Спортын холбоо", city: "Чойбалсан", isNew: true, icon: FaFutbol, enrollLink: "#" },
-      ] as VolunteerOpportunity[],
-    },
-    en: {
-      sectionTitle: "Latest Opportunities",
-      subtitle: "Your skills are needed. Join today and start making a difference.",
-      ctaText: "View All Opportunities",
-      ctaLink: "/volunteers",
-      buttonText: "View Details",
-      labels: { registration: "Registration", organization: "Organization", city: "Location" },
-      volunteers: [
-        { id: 1, title: "Environmental Cleanup", description: "Join us to clean up local parks and rivers.", registrationStart: "2025-10-01", registrationEnd: "2025-11-01", organization: "Environmental Agency", city: "Ulaanbaatar", isNew: true, icon: FaLeaf, enrollLink: "#" },
-        { id: 2, title: "Youth Innovation Hackathon", description: "Mentor young minds and help them build solutions.", registrationStart: "2025-11-10", registrationEnd: "2025-11-20", organization: "Tech for Mongolia", city: "Erdenet", isNew: true, icon: FaUsers, enrollLink: "#" },
-        { id: 4, title: "National Games Support Staff", description: "Help coordinate a major national sports event.", registrationStart: "2025-12-01", registrationEnd: "2025-12-15", organization: "Sports Federation", city: "Choibalsan", isNew: true, icon: FaFutbol, enrollLink: "#" },
-      ] as VolunteerOpportunity[],
-    },
-};
 
 // --- 3. THE MAIN PAGE COMPONENT ---
 const Members = () => {
   const { language } = useLanguage();
   const t_members = teamData[language];
-  const t_volunteers = volunteersData[language];
 
   return (
     <>
@@ -112,22 +83,7 @@ const Members = () => {
       </section>
 
       {/* --- Section 2: Volunteer Opportunities --- */}
-      <section className="py-24 bg-slate-50 border-t border-slate-200">
-        <div className="container px-4 mx-auto max-w-7xl">
-            <motion.div initial={{ opacity: 0, y: -30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.8, ease: "easeOut" }} className="text-center mb-16">
-                <h2 className="text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-blue-600 via-cyan-500 to-indigo-600 bg-clip-text text-transparent">{t_volunteers.sectionTitle}</h2>
-                <p className="text-lg text-slate-600 max-w-3xl mx-auto">{t_volunteers.subtitle}</p>
-            </motion.div>
-            <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.2 }} variants={{ hidden: {}, visible: { transition: { staggerChildren: 0.15 } } }} className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
-                {t_volunteers.volunteers.slice(0, 3).map((volunteer) => <VolunteerCard key={volunteer.id} volunteer={volunteer} t={t_volunteers} />)}
-            </motion.div>
-            <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.8, ease: "easeOut", delay: 0.5 }} className="text-center mt-20">
-                <Link href={t_volunteers.ctaLink} className="group inline-flex items-center gap-3 px-8 py-4 rounded-lg bg-transparent border-2 border-blue-600 text-blue-600 font-bold text-lg hover:bg-blue-600 hover:text-white transition-all duration-300 transform hover:-translate-y-1">
-                    {t_volunteers.ctaText} <FaArrowRight className="group-hover:translate-x-1 transition-transform" />
-                </Link>
-            </motion.div>
-        </div>
-      </section>
+     
     </>
   );
 };

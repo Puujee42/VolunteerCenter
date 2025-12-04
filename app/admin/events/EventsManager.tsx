@@ -49,7 +49,7 @@ export default function EventsManager({ events, opportunities, defaultTab = "eve
     if (!file) return;
 
     // Check file size (e.g. 5MB limit)
-    if (file.size > 5 * 1024 * 1024) {
+    if (file.size > 15 * 1024 * 1024) {
         alert("File is too large. Max 5MB.");
         return;
     }
