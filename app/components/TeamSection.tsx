@@ -23,13 +23,13 @@ const teamData = {
         {
           name: "Х. Сэлэнгэ",
           title: "Гүйцэтгэх захирал",
-          image: "/data.jpg",
+          image: "/selenge.jpg",
           socials: { facebook: "#", linkedin: "#", twitter: "#" },
         },
         {
           name: "Cheris Thomason",
           title: "Хөтөлбөр хөгжүүлэгч",
-          image: "/tsev.png",
+          image: "/thompson.jpg",
           socials: { facebook: "#", linkedin: "#", twitter: "#" },
         },
         {
@@ -55,13 +55,13 @@ const teamData = {
         {
           name: "Kh. Selenge",
           title: "Executive Director",
-          image: "/data.jpg",
+          image: "/selenge.jpg",
           socials: { facebook: "#", linkedin: "#", twitter: "#" },
         },
         {
           name: "Cheris Thomason",
           title: "Program Developer",
-          image: "/data.jpg",
+          image: "/thompson.jpg",
           socials: { facebook: "#", linkedin: "#", twitter: "#" },
         },
         {

@@ -37,8 +37,8 @@ const teamData = {
     ctaLink: "/careers",
     members: [
       { name: "Б. Цэвэлмаа", title: "Үүсгэн байгуулагч, Зөвлөх", image: "/tsev.png", socials: { linkedin: "#", twitter: "#" } },
-      { name: "Х. Сэлэнгэ", title: "Гүйцэтгэх захирал", image: "/data.jpg", socials: { linkedin: "#", facebook: "#" } },
-      { name: "Cheris Thomason", title: "Хөтөлбөр хөгжүүлэгч", image: "/tsev.png", socials: { linkedin: "#" } },
+      { name: "Х. Сэлэнгэ", title: "Гүйцэтгэх захирал", image: "/selenge.jpg", socials: { linkedin: "#", facebook: "#" } },
+      { name: "Cheris Thomason", title: "Хөтөлбөр хөгжүүлэгч", image: "/selenge.jpg", socials: { linkedin: "#" } },
       { name: "Б. Инж", title: "Хөтөлбөр зохицуулагч", image: "/data.jpg", socials: { twitter: "#", facebook: "#" } },
     ] as TeamMember[],
   },
@@ -49,8 +49,8 @@ const teamData = {
     ctaLink: "/careers",
     members: [
       { name: "B. Tsevelmaa", title: "Founder & Consultant", image: "/tsev.png", socials: { linkedin: "#", twitter: "#" } },
-      { name: "Kh. Selenge", title: "Executive Director", image: "/data.jpg", socials: { linkedin: "#", facebook: "#" } },
-      { name: "Cheris Thomason", title: "Program Developer", image: "/tsev.png", socials: { linkedin: "#" } },
+      { name: "Kh. Selenge", title: "Executive Director", image: "/selenge.jpg", socials: { linkedin: "#", facebook: "#" } },
+      { name: "Cheris Thomason", title: "Program Developer", image: "/selenge.jpg", socials: { linkedin: "#" } },
       { name: "B. Inju", title: "Program Coordinator", image: "/data.jpg", socials: { twitter: "#", facebook: "#" } },
     ] as TeamMember[],
   },
