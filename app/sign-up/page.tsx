@@ -14,7 +14,7 @@ const registerData = {
     mn: {
         heroQuote: "Өөрчлөлтийн нэг хэсэг болж, нийгэмдээ гэрэл нэмээрэй.",
         title: "Шинэ бүртгэл үүсгэх",
-        idPlaceholder: "Хэрэглэгчийн ID",
+        idPlaceholder: "Хэрэглэгчийн нэр", 
         emailPlaceholder: "Имэйл хаяг",
         passwordPlaceholder: "Нууц үг",
         confirmPasswordPlaceholder: "Нууц үг давтах",
@@ -31,7 +31,7 @@ const registerData = {
     en: {
         heroQuote: "Be part of the change and bring light to your community.",
         title: "Create a New Account",
-        idPlaceholder: "Username / ID",
+        idPlaceholder: "Username ",
         emailPlaceholder: "Email Address",
         passwordPlaceholder: "Password",
         confirmPasswordPlaceholder: "Confirm Password",
