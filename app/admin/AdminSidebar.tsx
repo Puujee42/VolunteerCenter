@@ -66,6 +66,7 @@ export default function AdminSidebar({ user }: SidebarProps) {
         <NavItem href="/admin/events" icon={FaCalendarAlt} label={t.events} active={pathname.startsWith("/admin/events")} />
         <NavItem href="/admin/content" icon={FaChartLine} label={t.content} active={pathname.startsWith("/admin/content")} />
         <NavItem href="/admin/opportunities" icon={FaHandsHelping} label={t.opportunities} active={pathname.startsWith("/admin/opportunities")} />
+        <NavItem href="/admin/programs" icon={FaHandsHelping} label="Programs" active={pathname.startsWith("/admin/programs")} />
         <NavItem href="/admin/settings" icon={FaCog} label={t.settings} active={pathname.startsWith("/admin/settings")} />
       </nav>
 

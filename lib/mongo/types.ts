@@ -6,7 +6,23 @@ export interface BilingualString {
   mn: string;
   en: string;
 }
+export interface ProgramItem {
+  id: string;
+  category: string;
+  icon: string;
+  title: BilingualString;
+  description: BilingualString;
+  focus: { mn: string[]; en: string[] };
+  color: string; // Tailwind classes string
+}
 
+export interface ProgramPageData {
+  heroTitle: string;
+  heroSubtitle: string;
+  stats: { label: string; value: string }[];
+  categories: { [key: string]: string };
+  programs: ProgramItem[];
+}
 // --- Collections ---
 
 export interface JobOpening {

@@ -8,10 +8,11 @@ import {
   VolunteerOpportunity, 
   PodcastEpisode, 
   VideoItem, 
-  NewsItem 
+  NewsItem,
+  ProgramItem // <--- Added this import
 } from "./types";
 
-const DB_NAME = "volunteer_db"; // Change to "volunteer_db" or similar if preferred
+const DB_NAME = "volunteer_db"; 
 
 // Helper to convert MongoDB _id to string
 const mapDoc = <T>(doc: any): T => ({
@@ -26,15 +27,11 @@ export async function getJobOpenings() {
   const client = await clientPromise;
   const collection = client.db(DB_NAME).collection<JobOpening>("jobs");
   
-  // Fetch all jobs
   const jobs = await collection.find({}).toArray();
   
-  // Convert ObjectId to string for Next.js
-  return jobs.map(job => ({
-    ...job,
-    _id: job._id.toString(),
-  }));
+  return jobs.map(mapDoc);
 }
+
 // ─────────────────────────────────────────────────────────────
 // 2. COURSES (E-Learning)
 // ─────────────────────────────────────────────────────────────
@@ -42,7 +39,6 @@ export async function getCourses() {
   const client = await clientPromise;
   const collection = client.db(DB_NAME).collection<Course>("courses");
   
-  // Sort by date ascending (upcoming courses)
   const courses = await collection.find({}).sort({ date: 1 }).toArray();
   return courses.map(mapDoc);
 }
@@ -62,7 +58,7 @@ export async function getEvents(limit?: number) {
   const client = await clientPromise;
   const collection = client.db(DB_NAME).collection<EventItem>("events");
   
-  let cursor = collection.find({}).sort({ startDate: 1 }); // Soonest first
+  let cursor = collection.find({}).sort({ startDate: 1 }); 
   
   if (limit) {
     cursor = cursor.limit(limit);
@@ -91,7 +87,7 @@ export async function getVolunteerOpportunities(cityFilter?: string) {
   
   const opportunities = await collection
     .find(query)
-    .sort({ addedDate: -1 }) // Newest listed first
+    .sort({ addedDate: -1 }) 
     .toArray();
 
   return opportunities.map(mapDoc);
@@ -104,7 +100,7 @@ export async function getNews(limit?: number) {
   const client = await clientPromise;
   const collection = client.db(DB_NAME).collection<NewsItem>("news");
   
-  let cursor = collection.find({}).sort({ date: -1 }); // Newest first
+  let cursor = collection.find({}).sort({ date: -1 }); 
   
   if (limit) {
     cursor = cursor.limit(limit);
@@ -134,12 +130,8 @@ export async function getVideos() {
 }
 
 // ─────────────────────────────────────────────────────────────
-// 7. USER DASHBOARD (Activities, History)
+// 7. USER DASHBOARD
 // ─────────────────────────────────────────────────────────────
-// Assuming a 'users' collection where a user document contains an 'activities' array
-// or a separate 'activities' collection linked by userId.
-// Here is a simple implementation assuming a separate collection linked by userId.
-
 export interface UserActivity {
   userId: string;
   category: string;
@@ -158,4 +150,24 @@ export async function getUserActivities(userId: string) {
     .toArray();
 
   return activities.map(mapDoc);
+}
+
+// ─────────────────────────────────────────────────────────────
+// 8. PROGRAMS
+// ─────────────────────────────────────────────────────────────
+export async function getPrograms() {
+  const client = await clientPromise;
+  const collection = client.db(DB_NAME).collection<ProgramItem>("programs");
+  
+  // We generally just want all programs to display on the page
+  const programs = await collection.find({}).toArray();
+  
+  return programs.map(mapDoc);
+}
+export async function getProgramById(slugId: string) {
+  const client = await clientPromise;
+  const collection = client.db(DB_NAME).collection<ProgramItem>("programs");
+  
+  const program = await collection.findOne({ id: slugId });
+  return program ? mapDoc(program) : null;
 }

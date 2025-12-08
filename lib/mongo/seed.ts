@@ -1,6 +1,16 @@
 import { MongoClient } from 'mongodb';
 import * as dotenv from 'dotenv';
-
+import { 
+  JobOpening, 
+  Course, 
+  EventItem, 
+  VolunteerOpportunity, 
+  PodcastEpisode, 
+  VideoItem, 
+  NewsItem,
+  ProgramItem,
+  ProgramPageData 
+} from "./types";
 // Load environment variables from .env.local
 dotenv.config({ path: '.env' });
 
@@ -14,7 +24,40 @@ const DB_NAME = "volunteeer_db"; // Or your preferred DB name
 // ─────────────────────────────────────────────────────────────
 // DATA PREPARATION (Merging MN/EN into single docs)
 // ─────────────────────────────────────────────────────────────
+const PROGRAMS_DATA = [
+  // 1. Education Placeholder
+  {
+    id: "edu-1",
+    category: "education",
+    icon: "FaGraduationCap",
+    title: { mn: "Боловсролын Хөтөлбөр", en: "Education Program" },
+    description: { mn: "Боловсролын чанарыг сайжруулах, сургалтын хөтөлбөр.", en: "Programs focused on improving educational quality and access." },
+    focus: { mn: ["Сургалт", "Мэдлэг", "Хөгжил"], en: ["Training", "Knowledge", "Development"] },
+    color: "bg-blue-100 text-blue-600",
+  },
+  
+  // 2. Volunteering Placeholder
+  {
+    id: "vol-1",
+    category: "volunteering",
+    icon: "FaHandsHelping",
+    title: { mn: "Сайн Дурын Үйлс", en: "Volunteering" },
+    description: { mn: "Нийгэмд тустай сайн дурын ажлууд болон арга хэмжээнүүд.", en: "Community service and volunteering initiatives." },
+    focus: { mn: ["Оролцоо", "Тусламж", "Хамт олон"], en: ["Participation", "Aid", "Community"] },
+    color: "bg-orange-100 text-orange-600",
+  },
 
+  // 3. General Programs Placeholder
+  {
+    id: "prog-1",
+    category: "programs", 
+    icon: "FaGlobe", 
+    title: { mn: "Тусгай Хөтөлбөр", en: "Special Programs" },
+    description: { mn: "Тусгай төсөл болон хөгжлийн бусад хөтөлбөрүүд.", en: "Special projects and other development programs." },
+    focus: { mn: ["Төсөл", "Инноваци", "Ирээдүй"], en: ["Projects", "Innovation", "Future"] },
+    color: "bg-green-100 text-green-600",
+  },
+];
 const jobsData = [
   {
     id: "1",
@@ -135,42 +178,12 @@ async function main() {
 
     const db = client.db(DB_NAME);
 
-    // 1. JOBS
-    console.log("🌱 Seeding Jobs...");
-    await db.collection("jobs").deleteMany({});
-    await db.collection("jobs").insertMany(jobsData);
-
-    // 2. COURSES
-    console.log("🌱 Seeding Courses...");
-    await db.collection("courses").deleteMany({});
-    await db.collection("courses").insertMany(coursesData);
-
-    // 3. EVENTS
-    console.log("🌱 Seeding Events...");
-    await db.collection("events").deleteMany({});
-    await db.collection("events").insertMany(eventsData);
-
-    // 4. NEWS
-    console.log("🌱 Seeding News...");
-    await db.collection("news").deleteMany({});
-    await db.collection("news").insertMany(newsData);
-
-    // 5. VOLUNTEERS
-    console.log("🌱 Seeding Volunteers...");
-    await db.collection("volunteers").deleteMany({});
-    await db.collection("volunteers").insertMany(volunteersData);
     
-    // 6. PODCASTS
-    console.log("🌱 Seeding Podcasts...");
-    await db.collection("podcasts").deleteMany({});
-    await db.collection("podcasts").insertMany(podcastsData);
-
-    // 7. VIDEOS
-    console.log("🌱 Seeding Videos...");
-    await db.collection("videos").deleteMany({});
-    await db.collection("videos").insertMany(videosData);
-
-    console.log("🎉 Database seeded successfully!");
+    await db.collection("prorgrams").deleteMany({});
+    await db.collection("prorgrams").insertOne(PROGRAMS_DATA[0]);
+    await db.collection("prorgrams").insertOne(PROGRAMS_DATA[1]);
+    await db.collection("prorgrams").insertOne(PROGRAMS_DATA[2]);
+   
 
   } catch (error) {
     console.error("❌ Error seeding database:", error);

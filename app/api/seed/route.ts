@@ -1,4 +1,5 @@
 import clientPromise from "@/lib/mongo/mongodb"; // Adjust path if your mongo client is elsewhere (e.g. "@/lib/mongodb")
+import { ProgramPageData } from "@/lib/mongo/types";
 import { NextResponse } from "next/server";
 
 // Prevents caching so you can run this multiple times
@@ -197,7 +198,40 @@ const usersData = [
     ]
   }
 ];
+const PROGRAMS_DATA = [
+  // 1. Education Placeholder
+  {
+    id: "edu-1",
+    category: "education",
+    icon: "FaGraduationCap",
+    title: { mn: "Боловсролын Хөтөлбөр", en: "Education Program" },
+    description: { mn: "Боловсролын чанарыг сайжруулах, сургалтын хөтөлбөр.", en: "Programs focused on improving educational quality and access." },
+    focus: { mn: ["Сургалт", "Мэдлэг", "Хөгжил"], en: ["Training", "Knowledge", "Development"] },
+    color: "bg-blue-100 text-blue-600",
+  },
+  
+  // 2. Volunteering Placeholder
+  {
+    id: "vol-1",
+    category: "volunteering",
+    icon: "FaHandsHelping",
+    title: { mn: "Сайн Дурын Үйлс", en: "Volunteering" },
+    description: { mn: "Нийгэмд тустай сайн дурын ажлууд болон арга хэмжээнүүд.", en: "Community service and volunteering initiatives." },
+    focus: { mn: ["Оролцоо", "Тусламж", "Хамт олон"], en: ["Participation", "Aid", "Community"] },
+    color: "bg-orange-100 text-orange-600",
+  },
 
+  // 3. General Programs Placeholder
+  {
+    id: "prog-1",
+    category: "programs", 
+    icon: "FaGlobe", 
+    title: { mn: "Тусгай Хөтөлбөр", en: "Special Programs" },
+    description: { mn: "Тусгай төсөл болон хөгжлийн бусад хөтөлбөрүүд.", en: "Special projects and other development programs." },
+    focus: { mn: ["Төсөл", "Инноваци", "Ирээдүй"], en: ["Projects", "Innovation", "Future"] },
+    color: "bg-green-100 text-green-600",
+  },
+];
 // 2. Prepare Opportunities Data
 const opportunitiesData = [
   {
@@ -242,63 +276,17 @@ export async function GET() {
     const db = client.db(DB_NAME);
     
     // --- 1. JOBS ---
-    const jobsCollection = db.collection("jobs");
-    await jobsCollection.deleteMany({});
-    const jobsResult = await jobsCollection.insertMany(jobsData);
+   
+    const programCollection = db.collection("programs");
+    await programCollection.deleteMany({});
+    const programsResult = await programCollection.insertMany(PROGRAMS_DATA);
 
-    // --- 2. COURSES ---
-    const coursesCollection = db.collection("courses");
-    await coursesCollection.deleteMany({});
-    const coursesResult = await coursesCollection.insertMany(coursesData);
-
-    // --- 3. EVENTS ---
-    const eventsCollection = db.collection("events");
-    await eventsCollection.deleteMany({});
-    const eventsResult = await eventsCollection.insertMany(eventsData);
-
-    // --- 4. NEWS ---
-    const newsCollection = db.collection("news");
-    await newsCollection.deleteMany({});
-    const newsResult = await newsCollection.insertMany(newsData);
-
-    // --- 5. VOLUNTEERS ---
-    const volunteersCollection = db.collection("volunteers");
-    await volunteersCollection.deleteMany({});
-    const volunteersResult = await volunteersCollection.insertMany(volunteersData);
-
-    // --- 6. PODCASTS ---
-    const podcastsCollection = db.collection("podcasts");
-    await podcastsCollection.deleteMany({});
-    const podcastsResult = await podcastsCollection.insertMany(podcastsData);
-
-    // --- 7. VIDEOS ---
-    const videosCollection = db.collection("videos");
-    await videosCollection.deleteMany({});
-    const videosResult = await videosCollection.insertMany(videosData);
-    const lessonsCollection = db.collection("lessons");
-    await lessonsCollection.deleteMany({});
-    const lessonsResult = await lessonsCollection.insertMany(lessonsData);
-      const usersCol = db.collection("users");
-    await usersCol.deleteMany({});
-    await usersCol.insertMany(usersData);
-
-    // --- Insert Opportunities ---
-    const oppsCol = db.collection("opportunities");
-    await oppsCol.deleteMany({});
-    await oppsCol.insertMany(opportunitiesData);
-    
     return NextResponse.json({ 
       success: true, 
       message: "Database RESET and updated with Dashboard seed data.", 
       counts: {
-        jobs: jobsResult.insertedCount,
-        courses: coursesResult.insertedCount,
-        events: eventsResult.insertedCount,
-        news: newsResult.insertedCount,
-        volunteers: volunteersResult.insertedCount,
-        podcasts: podcastsResult.insertedCount,
-        videos: videosResult.insertedCount,
-        lessons: lessonsResult.insertedCount,
+       
+        programs: programsResult.insertedCount,
         users: usersData.length,
         opportunities: opportunitiesData.length,
       }
