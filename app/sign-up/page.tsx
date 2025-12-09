@@ -2,7 +2,7 @@
 
 import { motion, Variants } from "framer-motion";
 import { useLanguage } from "../context/LanguageContext";
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
 import { 
   FaUser, 
@@ -13,9 +13,9 @@ import {
   FaIdCard, 
   FaAddressCard,
   FaEye,
-  FaEyeSlash 
+  FaEyeSlash,
+  FaBuilding // Icon for Organization
 } from "react-icons/fa";
-import { mongolianLocations } from "./location"; // Adjust path if needed
 import { SignedOut, useSignUp } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 
@@ -24,9 +24,9 @@ const registerData = {
     mn: {
         heroQuote: "Өөрчлөлтийн нэг хэсэг болж, нийгэмдээ гэрэл нэмээрэй.",
         title: "Шинэ бүртгэл үүсгэх",
-        fullNamePlaceholder: "Бүтэн нэр", // New
-        registryPlaceholder: "Регистрийн дугаар", // New
-        idPlaceholder: "Хэрэглэгчийн нэр (Username)", 
+        fullNamePlaceholder: "Бүтэн нэр", 
+        registryPlaceholder: "Регистрийн дугаар",
+        idPlaceholder: "Хэрэглэгчийн нэр", 
         emailPlaceholder: "Имэйл хаяг",
         passwordPlaceholder: "Нууц үг",
         confirmPasswordPlaceholder: "Нууц үг давтах",
@@ -34,17 +34,41 @@ const registerData = {
         provinceLabel: "Аймаг/Нийслэл сонгох",
         districtLabel: "Сум/Дүүрэг сонгох",
         programLabel: "Хөтөлбөр сонгох",
+        partnerLabel: "Харьяалагдах байгууллага", // New Label
         programs: ["AND", "EDU", "V", "Одоогоор мэдэхгүй"],
+        // Added Volunteer Center Mongolia and "Other" option
+        partnersList: [
+            "Volunteer Center Mongolia", // Requested Addition
+            "Хүүхэд, гэр бүлийн хөгжил, хамгааллын ерөнхий газар",
+            "Өмнөговь аймгийн Гэр бүл, Хүүхэд, Залуучуудын хөгжлийн газар",
+            "Баянзүрх дүүргийн хүүхэд хөгжлийн хэлтэс",
+            "Хан-Уул дүүргийн хүүхэд хөгжлийн хэлтэс",
+            "Сонгинохайрхан дүүргийн хүүхэд хөгжлийн хэлтэс",
+            "Баянгол дүүргийн хүүхэд хөгжлийн хэлтэс",
+            "Багахангай дүүргийн хүүхэд хөгжлийн хэлтэс",
+            "Налайх дүүргийн хүүхэд хөгжлийн хэлтэс",
+            "GOOD NEIGHBORS Mongolia",
+            "Нийслэлийн Засаг даргын Тамгын газар",
+            "Нийслэлийн Иргэдийн Төлөөлөгчдийн Хурал",
+            "Монголын Улаан Загалмай Нийгэмлэг",
+            "Дэлхийн Зөн Монгол",
+            "ADRA Mongolia",
+            "Дэлхийн Банк",
+            "Magic Mascot",
+            "Peace Corps Mongolia",
+            "Бусад / Хувь хүн" // Option for individuals
+        ],
         termsAgree: "Би үйлчилгээний нөхцөлийг зөвшөөрч байна.",
         registerButton: "Бүртгүүлэх",
         loginPrompt: "Бүртгэлтэй юу?",
         loginLink: "Нэвтрэх",
+        loadingLocations: "Байршил уншиж байна...",
     },
     en: {
         heroQuote: "Be part of the change and bring light to your community.",
         title: "Create a New Account",
-        fullNamePlaceholder: "Full Name", // New
-        registryPlaceholder: "National Registry ID", // New
+        fullNamePlaceholder: "Full Name",
+        registryPlaceholder: "National Registry ID",
         idPlaceholder: "Username",
         emailPlaceholder: "Email Address",
         passwordPlaceholder: "Password",
@@ -53,11 +77,30 @@ const registerData = {
         provinceLabel: "Select Province/City",
         districtLabel: "Select District/Soum",
         programLabel: "Choose a Program",
+        partnerLabel: "Affiliated Organization", // New Label
         programs: ["AND", "EDU", "V", "I don't know yet"],
+        // English translations for the list
+        partnersList: [
+            "Volunteer Center Mongolia",
+            "Authority for Family, Child, and Youth Development",
+            "Umnugovi Family, Child & Youth Development Agency",
+            "District Child Development Departments (BZD, KHUD, SHD, BGD, etc.)",
+            "GOOD NEIGHBORS Mongolia",
+            "Governor's Office of the Capital City",
+            "Ulaanbaatar City Council",
+            "Mongolian Red Cross Society",
+            "World Vision Mongolia",
+            "ADRA Mongolia",
+            "The World Bank",
+            "Magic Mascot",
+            "Peace Corps Mongolia",
+            "Other / Individual"
+        ],
         termsAgree: "I agree to the Terms of Service.",
         registerButton: "Register Now",
         loginPrompt: "Already have an account?",
         loginLink: "Sign In",
+        loadingLocations: "Loading locations...",
     },
 };
 
@@ -117,8 +160,8 @@ const RegisterForm: React.FC<{ t: any }> = ({ t }) => {
     const router = useRouter();
     
     // State Variables
-    const [fullName, setFullName] = useState(""); // New
-    const [registryNumber, setRegistryNumber] = useState(""); // New
+    const [fullName, setFullName] = useState("");
+    const [registryNumber, setRegistryNumber] = useState("");
     const [username, setUsername] = useState("");
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
@@ -128,23 +171,52 @@ const RegisterForm: React.FC<{ t: any }> = ({ t }) => {
     const [selectedDistrict, setSelectedDistrict] = useState("");
     const [selectedProgram, setSelectedProgram] = useState("");
     
+    // NEW: Partner State
+    const [selectedPartner, setSelectedPartner] = useState("");
+
+    // Locations State
+    const [locations, setLocations] = useState<any[]>([]);
+    const [loadingLocs, setLoadingLocs] = useState(true);
+
     const [error, setError] = useState("");
     const [isLoading, setIsLoading] = useState(false);
     const [pendingVerification, setPendingVerification] = useState(false);
     const [code, setCode] = useState("");
     
-    // Password visibility toggle states
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
+    // --- FETCH LOCATIONS FROM DB ---
+    useEffect(() => {
+        const fetchLocations = async () => {
+            try {
+                const res = await fetch('/api/locations');
+                const data = await res.json();
+                if (data.success) {
+                    setLocations(data.locations);
+                }
+            } catch (err) {
+                console.error("Failed to load locations", err);
+            } finally {
+                setLoadingLocs(false);
+            }
+        };
+        fetchLocations();
+    }, []);
+
+    // Get selected location data (including lat/lng)
+    const selectedLocationData = useMemo(() => {
+        return locations.find(l => l.name === selectedProvince);
+    }, [locations, selectedProvince]);
+
     // Dynamic Districts
     const districts = useMemo(() => {
-        if (!selectedProvince) return [];
-        const province = mongolianLocations.find(p => p.name === selectedProvince);
+        if (!selectedProvince || locations.length === 0) return [];
+        const province = locations.find(p => p.name === selectedProvince);
         return province ? province.districts : [];
-    }, [selectedProvince]);
+    }, [selectedProvince, locations]);
 
-    // --- 1. Handle Submit (Creates Clerk Account) ---
+    // --- 1. Handle Submit ---
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!isLoaded || isLoading) return;
@@ -162,14 +234,19 @@ const RegisterForm: React.FC<{ t: any }> = ({ t }) => {
                 emailAddress: email,
                 username,
                 password,
-                // We store the new fields in unsafeMetadata
                 unsafeMetadata: {
-                    fullName, // New
-                    registryNumber, // New
+                    fullName,
+                    registryNumber,
                     age: parseInt(age, 10),
                     province: selectedProvince,
                     district: selectedDistrict,
                     program: selectedProgram,
+                    partner: selectedPartner, // Save Partner to Clerk
+                    // Save coordinates so we don't need to look them up later
+                    location: selectedLocationData ? { 
+                        lat: selectedLocationData.lat, 
+                        lng: selectedLocationData.lng 
+                    } : null
                 },
             });
 
@@ -184,7 +261,7 @@ const RegisterForm: React.FC<{ t: any }> = ({ t }) => {
         }
     };
 
-    // --- 2. Handle Verify (Syncs to MongoDB & Logs In) ---
+    // --- 2. Handle Verify ---
     const handleVerify = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!isLoaded || isLoading) return;
@@ -196,47 +273,42 @@ const RegisterForm: React.FC<{ t: any }> = ({ t }) => {
             const result = await signUp.attemptEmailAddressVerification({ code });
 
             if (result.status === "complete") {
-                // A. Set the session (Log the user in on Clerk)
                 await setActive({ session: result.createdSessionId });
 
-                // B. SYNC TO MONGODB
-                // Include new fields in the sync call
+                // Sync to MongoDB
                 try {
-                    const syncResponse = await fetch('/api/user/sync', {
+                    await fetch('/api/user/sync', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
-                            fullName, // Syncing new field
-                            registryNumber, // Syncing new field
+                            fullName,
+                            registryNumber,
                             age, 
                             province: selectedProvince,
                             district: selectedDistrict,
-                            program: selectedProgram
+                            program: selectedProgram,
+                            partner: selectedPartner, // Save Partner to MongoDB
+                            coordinates: selectedLocationData ? {
+                                lat: selectedLocationData.lat,
+                                lng: selectedLocationData.lng
+                            } : null
                         })
                     });
-
-                    if (!syncResponse.ok) {
-                        console.error("Database sync warning: API returned non-200 status.");
-                    }
                 } catch (syncErr) {
                     console.error("Database sync error:", syncErr);
                 }
 
-                // C. Redirect to Dashboard
                 router.push("/dashboard");
             } else {
-                console.log("Unexpected verification status:", result.status);
                 setError("Verification did not complete. Please try signing in.");
             }
         } catch (err: any) {
-            console.error(JSON.stringify(err, null, 2));
             setError(err.errors[0]?.longMessage || "Verification failed. Please check the code and try again.");
         } finally {
             setIsLoading(false);
         }
     };
 
-    // --- Pending Verification View ---
     if (pendingVerification) {
         return (
             <form onSubmit={handleVerify} className="space-y-5">
@@ -262,107 +334,61 @@ const RegisterForm: React.FC<{ t: any }> = ({ t }) => {
         );
     }
 
-    // --- Standard Registration Form View ---
     return (
         <form onSubmit={handleSubmit} className="space-y-5">
-            {/* Full Name */}
             <motion.div variants={itemVariants}>
-                <InputField 
-                    type="text" 
-                    placeholder={t.fullNamePlaceholder} 
-                    icon={FaAddressCard} 
-                    value={fullName} 
-                    onChange={(e: any) => setFullName(e.target.value)} 
-                />
+                <InputField type="text" placeholder={t.fullNamePlaceholder} icon={FaAddressCard} value={fullName} onChange={(e: any) => setFullName(e.target.value)} />
+            </motion.div>
+            <motion.div variants={itemVariants}>
+                <InputField type="text" placeholder={t.registryPlaceholder} icon={FaIdCard} value={registryNumber} onChange={(e: any) => setRegistryNumber(e.target.value)} />
+            </motion.div>
+            <motion.div variants={itemVariants}>
+                <InputField type="text" placeholder={t.idPlaceholder} icon={FaUser} value={username} onChange={(e: any) => setUsername(e.target.value)} />
+            </motion.div>
+            <motion.div variants={itemVariants}>
+                <InputField type="email" placeholder={t.emailPlaceholder} icon={FaEnvelope} value={email} onChange={(e: any) => setEmail(e.target.value)} />
+            </motion.div>
+            <motion.div variants={itemVariants}>
+                <InputField type={showPassword ? "text" : "password"} placeholder={t.passwordPlaceholder} icon={FaLock} value={password} onChange={(e: any) => setPassword(e.target.value)} isPassword={true} showPassword={showPassword} togglePassword={() => setShowPassword(!showPassword)} />
+            </motion.div>
+            <motion.div variants={itemVariants}>
+                <InputField type={showConfirmPassword ? "text" : "password"} placeholder={t.confirmPasswordPlaceholder} icon={FaLock} value={confirmPassword} onChange={(e: any) => setConfirmPassword(e.target.value)} isPassword={true} showPassword={showConfirmPassword} togglePassword={() => setShowConfirmPassword(!showConfirmPassword)} />
+            </motion.div>
+            <motion.div variants={itemVariants}>
+                <InputField type="number" placeholder={t.agePlaceholder} icon={FaBirthdayCake} value={age} onChange={(e: any) => setAge(e.target.value)} />
             </motion.div>
 
-            {/* Registry Number */}
+            {/* Province Select from DB */}
             <motion.div variants={itemVariants}>
-                <InputField 
-                    type="text" 
-                    placeholder={t.registryPlaceholder} 
-                    icon={FaIdCard} 
-                    value={registryNumber} 
-                    onChange={(e: any) => setRegistryNumber(e.target.value)} 
-                />
-            </motion.div>
-
-            {/* Username */}
-            <motion.div variants={itemVariants}>
-                <InputField 
-                    type="text" 
-                    placeholder={t.idPlaceholder} 
-                    icon={FaUser} 
-                    value={username} 
-                    onChange={(e: any) => setUsername(e.target.value)} 
-                />
-            </motion.div>
-
-            {/* Email */}
-            <motion.div variants={itemVariants}>
-                <InputField 
-                    type="email" 
-                    placeholder={t.emailPlaceholder} 
-                    icon={FaEnvelope} 
-                    value={email} 
-                    onChange={(e: any) => setEmail(e.target.value)} 
-                />
-            </motion.div>
-
-            {/* Password */}
-            <motion.div variants={itemVariants}>
-                <InputField 
-                    type={showPassword ? "text" : "password"} 
-                    placeholder={t.passwordPlaceholder} 
-                    icon={FaLock} 
-                    value={password} 
-                    onChange={(e: any) => setPassword(e.target.value)}
-                    isPassword={true}
-                    showPassword={showPassword}
-                    togglePassword={() => setShowPassword(!showPassword)}
-                />
-            </motion.div>
-
-            {/* Confirm Password */}
-            <motion.div variants={itemVariants}>
-                <InputField 
-                    type={showConfirmPassword ? "text" : "password"} 
-                    placeholder={t.confirmPasswordPlaceholder} 
-                    icon={FaLock} 
-                    value={confirmPassword} 
-                    onChange={(e: any) => setConfirmPassword(e.target.value)}
-                    isPassword={true}
-                    showPassword={showConfirmPassword}
-                    togglePassword={() => setShowConfirmPassword(!showConfirmPassword)}
-                />
-            </motion.div>
-
-            {/* Age */}
-            <motion.div variants={itemVariants}>
-                <InputField 
-                    type="number" 
-                    placeholder={t.agePlaceholder} 
-                    icon={FaBirthdayCake} 
-                    value={age} 
-                    onChange={(e: any) => setAge(e.target.value)} 
-                />
-            </motion.div>
-
-            {/* Province Select */}
-            <motion.div variants={itemVariants}>
-                 <SelectField label={t.provinceLabel} value={selectedProvince} onChange={(e: any) => { setSelectedProvince(e.target.value); setSelectedDistrict(''); }}>
-                    {mongolianLocations.map(p => <option key={p.id} value={p.name}>{p.name}</option>)}
+                 <SelectField 
+                    label={loadingLocs ? t.loadingLocations : t.provinceLabel} 
+                    value={selectedProvince} 
+                    onChange={(e: any) => { setSelectedProvince(e.target.value); setSelectedDistrict(''); }}
+                    disabled={loadingLocs}
+                 >
+                    {locations.map((p: any) => <option key={p._id || p.name} value={p.name}>{p.name}</option>)}
                  </SelectField>
             </motion.div>
             
-            {/* District Select */}
+            {/* District Select from DB */}
              <motion.div variants={itemVariants}>
                  <SelectField label={t.districtLabel} disabled={!selectedProvince} value={selectedDistrict} onChange={(e: any) => setSelectedDistrict(e.target.value)}>
-                    {districts.map(d => <option key={d} value={d}>{d}</option>)}
+                    {districts.map((d: string) => <option key={d} value={d}>{d}</option>)}
                  </SelectField>
             </motion.div>
 
-            {/* Program Select */}
+            {/* NEW: Partner Organization Select */}
+            <motion.div variants={itemVariants}>
+                 <SelectField 
+                    label={t.partnerLabel} 
+                    icon={FaBuilding}
+                    value={selectedPartner} 
+                    onChange={(e: any) => setSelectedPartner(e.target.value)}
+                 >
+                    {t.partnersList.map((p: string) => <option key={p} value={p}>{p}</option>)}
+                 </SelectField>
+            </motion.div>
+
              <motion.div variants={itemVariants}>
                  <SelectField label={t.programLabel} value={selectedProgram} onChange={(e: any) => setSelectedProgram(e.target.value)}>
                     {t.programs.map((p: string) => <option key={p} value={p}>{p}</option>)}
@@ -379,11 +405,7 @@ const RegisterForm: React.FC<{ t: any }> = ({ t }) => {
             </motion.div>
 
             <motion.div variants={itemVariants}>
-                <motion.button 
-                    type="submit" 
-                    disabled={!isLoaded || isLoading} 
-                    className="w-full mt-4 py-3 bg-blue-600 text-white font-bold text-lg rounded-lg shadow-lg hover:bg-blue-700 transition-colors disabled:bg-slate-400"
-                >
+                <motion.button type="submit" disabled={!isLoaded || isLoading} className="w-full mt-4 py-3 bg-blue-600 text-white font-bold text-lg rounded-lg shadow-lg hover:bg-blue-700 transition-colors disabled:bg-slate-400">
                     {isLoading ? "Registering..." : t.registerButton}
                 </motion.button>
             </motion.div>
@@ -397,28 +419,12 @@ const RegisterForm: React.FC<{ t: any }> = ({ t }) => {
 
 // --- Helper Components ---
 
-// Updated InputField with Password Toggle
-const InputField: React.FC<any> = ({ 
-    icon: Icon, 
-    isPassword = false, 
-    showPassword = false, 
-    togglePassword, 
-    ...props 
-}) => (
+const InputField: React.FC<any> = ({ icon: Icon, isPassword = false, showPassword = false, togglePassword, ...props }) => (
     <div className="relative">
         <Icon className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
-        <input 
-            {...props} 
-            required 
-            className="w-full bg-white border-2 border-slate-300 rounded-lg py-3 pl-12 pr-12 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition" 
-        />
-        {/* Toggle Eye Icon */}
+        <input {...props} required className="w-full bg-white border-2 border-slate-300 rounded-lg py-3 pl-12 pr-12 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition" />
         {isPassword && (
-            <button
-                type="button"
-                onClick={togglePassword}
-                className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 focus:outline-none"
-            >
+            <button type="button" onClick={togglePassword} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 focus:outline-none">
                 {showPassword ? <FaEyeSlash /> : <FaEye />}
             </button>
         )}
