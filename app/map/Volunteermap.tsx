@@ -8,7 +8,7 @@ import { FaUserCircle } from "react-icons/fa";
 // 1. Translation Map (Cyrillic -> English Keys)
 const provinceMapping: Record<string, string> = {
     "Улаанбаатар": "ulaanbaatar",
-    "архангай": "arkhangai",
+    "Aрхангай": "arkhangai",
     "баян-өлгий": "bayan-ölgii",
     "баянөлгий": "bayan-ölgii",
     "баянхонгор": "bayankhongor",
