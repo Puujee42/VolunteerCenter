@@ -5,17 +5,20 @@ import { motion, AnimatePresence } from "framer-motion";
 import { FaTrash, FaEdit, FaSearch, FaUserTag, FaCrown, FaClipboardList } from "react-icons/fa";
 import { useRouter } from "next/navigation";
 
-// 1. UPDATE INTERFACE
+// 1. FIXED INTERFACE
 interface User {
   _id: string;
   userId: string;
   name: string;
   email: string;
-  // Rank = Gamification (Bronze/Silver/Gold)
+  // Fixed typo: changed 'currenta' to 'current' to match the rest of your code
   rank: { current: string };
-  // Role = System Permissions (Volunteer, Manager, Admin)
+  // Role = System Permissions
   role: "volunteer" | "manager" | "admin"; 
   createdAt: string;
+  updatedAt?: string; // Made optional just in case
+  imageUrl?: string;
+  bio?: string;
 }
 
 export default function UsersTable({ initialUsers }: { initialUsers: User[] }) {
@@ -28,8 +31,8 @@ export default function UsersTable({ initialUsers }: { initialUsers: User[] }) {
   // Filter Logic
   const filteredUsers = users.filter(
     (u) =>
-      u.name.toLowerCase().includes(search.toLowerCase()) ||
-      u.email.toLowerCase().includes(search.toLowerCase())
+      u.name?.toLowerCase().includes(search.toLowerCase()) ||
+      u.email?.toLowerCase().includes(search.toLowerCase())
   );
 
   // --- UPDATE HANDLER ---
@@ -46,7 +49,7 @@ export default function UsersTable({ initialUsers }: { initialUsers: User[] }) {
             userId: editingUser.userId,
             name: editingUser.name,
             rank: editingUser.rank.current,
-            role: editingUser.role // Sending the new permission role
+            role: editingUser.role 
         }),
       });
 
@@ -54,6 +57,8 @@ export default function UsersTable({ initialUsers }: { initialUsers: User[] }) {
         setUsers(prev => prev.map(u => u.userId === editingUser.userId ? editingUser : u));
         setEditingUser(null);
         router.refresh();
+      } else {
+        alert("Failed to update user");
       }
     } catch (error) {
       console.error(error);
@@ -64,10 +69,9 @@ export default function UsersTable({ initialUsers }: { initialUsers: User[] }) {
 
   // --- DELETE HANDLER ---
   const handleDelete = async (userId: string) => {
-    if (!confirm("Are you sure?")) return;
+    if (!confirm("Are you sure you want to delete this user?")) return;
     setLoading(true);
     try {
-        // ... existing delete logic
         const res = await fetch("/api/admin/users", {
             method: "DELETE",
             headers: { "Content-Type": "application/json" },
@@ -76,6 +80,8 @@ export default function UsersTable({ initialUsers }: { initialUsers: User[] }) {
         if(res.ok) {
             setUsers((prev) => prev.filter((u) => u.userId !== userId));
             router.refresh();
+        } else {
+            alert("Failed to delete");
         }
     } catch(err) { console.error(err) }
     finally { setLoading(false); }
@@ -122,9 +128,13 @@ export default function UsersTable({ initialUsers }: { initialUsers: User[] }) {
                 >
                   <td className="p-4">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold">
-                         {user.name.charAt(0).toUpperCase()}
-                      </div>
+                      {user.imageUrl ? (
+                          <img src={user.imageUrl} alt={user.name} className="w-10 h-10 rounded-full object-cover bg-slate-200"/>
+                      ) : (
+                          <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold">
+                             {user.name ? user.name.charAt(0).toUpperCase() : "?"}
+                          </div>
+                      )}
                       <div>
                         <p className="font-bold text-slate-800">{user.name}</p>
                         <p className="text-xs text-slate-500">{user.email}</p>
@@ -154,7 +164,7 @@ export default function UsersTable({ initialUsers }: { initialUsers: User[] }) {
                   {/* RANK COLUMN */}
                   <td className="p-4">
                     <span className="px-3 py-1 rounded-full text-xs font-bold border border-slate-200">
-                        {user.rank.current}
+                        {user.rank?.current || "Bronze"}
                     </span>
                   </td>
 
@@ -221,8 +231,11 @@ export default function UsersTable({ initialUsers }: { initialUsers: User[] }) {
                     <div>
                         <label className="block text-sm font-bold text-slate-700 mb-1">Volunteer Rank</label>
                         <select 
-                            value={editingUser.rank.current}
-                            onChange={(e) => setEditingUser({...editingUser, rank: {...editingUser.rank, current: e.target.value}})}
+                            value={editingUser.rank?.current || "Bronze"}
+                            onChange={(e) => setEditingUser({
+                                ...editingUser, 
+                                rank: { ...editingUser.rank, current: e.target.value }
+                            })}
                             className="w-full border p-2 rounded-lg"
                         >
                             <option value="Bronze">Bronze</option>

@@ -24,6 +24,7 @@ export default async function AdminUsersPage() {
     _id: u._id.toString(),
     userId: u.userId,
     name: u.name,
+    role: u.role || 'volunteer', // Add role with a fallback
     email: u.email,
     rank: u.rank || { current: "Bronze" }, // Fallback if missing
     createdAt: u.createdAt ? new Date(u.createdAt).toISOString() : new Date().toISOString(),
