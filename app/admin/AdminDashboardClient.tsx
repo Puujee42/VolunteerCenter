@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import dynamic from "next/dynamic";
 import { motion } from "framer-motion";
 import Link from "next/link";
@@ -13,15 +13,19 @@ import {
 } from 'recharts';
 import { useLanguage } from "../context/LanguageContext"; 
 
-// --- IMPORTS ---
-// 1. Import the types we just exported from the map file
-import { UserLocation, LocationData } from "../map/Volunteermap"; 
+// 1. Import Types
+import { UserLocation } from "../map/Volunteermap"; 
 
-// 2. Dynamic Import
+// 2. Dynamic Import of Map
 const VolunteerMap = dynamic(() => import("../map/Volunteermap"), {
     ssr: false,
-    loading: () => <div className="h-[400px] w-full bg-slate-100 animate-pulse rounded-xl flex items-center justify-center text-slate-400">Loading Map...</div>
+    loading: () => (
+        <div className="h-[400px] w-full bg-slate-100 animate-pulse rounded-xl flex items-center justify-center text-slate-400">
+            Loading Map...
+        </div>
+    )
 });
+
 
 const adminTranslations = {
   mn: {
@@ -52,30 +56,12 @@ interface AdminProps {
     signupsToday: number;
   };
   chartData: { date: string; signups: number }[];
-  allUsers: UserLocation[]; // Typed correctly now
+  allUsers: UserLocation[]; 
 }
 
 export default function AdminDashboardClient({ user, stats, chartData, allUsers }: AdminProps) {
   const { language, setLanguage } = useLanguage();
   const t = adminTranslations[language];
-
-  // Typed State
-  const [locations, setLocations] = useState<LocationData[]>([]);
-
-  useEffect(() => {
-    async function fetchLocations() {
-      try {
-        const res = await fetch('/api/locations');
-        const data = await res.json();
-        if (data.success) {
-            setLocations(data.locations);
-        }
-      } catch (e) {
-        console.error("Failed to load map locations", e);
-      }
-    }
-    fetchLocations();
-  }, []);
 
   const toggleLanguage = () => {
     setLanguage(language === "mn" ? "en" : "mn");
@@ -84,6 +70,7 @@ export default function AdminDashboardClient({ user, stats, chartData, allUsers 
   return (
     <div className="min-h-screen bg-slate-100 flex">
       <main className="pt-24 flex-1 p-8 overflow-y-auto ml-64">
+        
         {/* Header */}
         <header className="mb-8 flex justify-between items-center">
             <div>
@@ -125,28 +112,53 @@ export default function AdminDashboardClient({ user, stats, chartData, allUsers 
                     <p className="text-xs text-slate-500">{t.map.subtitle}</p>
                 </div>
             </div>
-            <div className="w-full h-[400px]">
-                <VolunteerMap users={allUsers} locations={locations} />
+            {/* Map Container - using explicit style to be safe */}
+            <div style={{ width: '100%', height: '400px' }}>
+                <VolunteerMap users={allUsers} />
             </div>
         </div>
 
         {/* Charts & Actions Section */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            
+            {/* Chart Container */}
             <div className="lg:col-span-2 bg-white p-6 rounded-xl shadow-sm border border-slate-200">
                 <h3 className="text-lg font-bold text-slate-800 mb-6">{t.chart.title}</h3>
-                <div className="h-64 w-full">
+                
+                {/* --- FIX: Use inline style for height to prevent Recharts error --- */}
+                <div style={{ width: '100%', height: 300 }}>
                     <ResponsiveContainer width="100%" height="100%">
                         <BarChart data={chartData}>
                             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                            <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{fill: '#64748b', fontSize: 12}} dy={10} />
-                            <YAxis axisLine={false} tickLine={false} tick={{fill: '#64748b', fontSize: 12}} allowDecimals={false} />
-                            <Tooltip cursor={{fill: '#f1f5f9'}} contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
-                            <Bar dataKey="signups" fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={40} />
+                            <XAxis 
+                                dataKey="date" 
+                                axisLine={false} 
+                                tickLine={false} 
+                                tick={{fill: '#64748b', fontSize: 12}} 
+                                dy={10} 
+                            />
+                            <YAxis 
+                                axisLine={false} 
+                                tickLine={false} 
+                                tick={{fill: '#64748b', fontSize: 12}} 
+                                allowDecimals={false} 
+                            />
+                            <Tooltip 
+                                cursor={{fill: '#f1f5f9'}} 
+                                contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} 
+                            />
+                            <Bar 
+                                dataKey="signups" 
+                                fill="#3b82f6" 
+                                radius={[4, 4, 0, 0]} 
+                                barSize={40} 
+                            />
                         </BarChart>
                     </ResponsiveContainer>
                 </div>
             </div>
 
+            {/* Quick Actions */}
             <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 flex flex-col">
                 <h3 className="text-lg font-bold text-slate-800 mb-4">{t.actions.title}</h3>
                 <div className="flex flex-col gap-3">
@@ -170,9 +182,9 @@ export default function AdminDashboardClient({ user, stats, chartData, allUsers 
   );
 }
 
-// --- FIXED StatCard with Proper Types ---
+// Helper with explicit Types
 interface StatCardProps {
-    icon: React.ElementType; // The correct type for an Icon component
+    icon: React.ElementType;
     label: string;
     value: number;
     color: string;
