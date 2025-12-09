@@ -102,6 +102,31 @@ const coursesData = [
     thumbnail: "/data.jpg",
   },
 ];
+const mongolianLocationsWithCoords = [
+    { name: "Ulaanbaatar", lat: 47.9188, lng: 106.9176, districts: ["Sukhbaatar", "Chingeltei", "Bayangol", "Khan-Uul", "Songinokhairkhan", "Bayanzurkh", "Nalaikh", "Bagakhangai", "Baganuur"] },
+    { name: "Arkhangai", lat: 47.3796, lng: 101.4603, districts: ["Tsetserleg", "Battsengel", "Khairkhan"] },
+    { name: "Bayan-Ölgii", lat: 48.3975, lng: 90.4265, districts: ["Ölgii", "Tolbo", "Nogoonnuur"] },
+    { name: "Bayankhongor", lat: 45.3080, lng: 100.1245, districts: ["Bayankhongor", "Galuut", "Erdenetsogt"] },
+    { name: "Bulgan", lat: 48.8125, lng: 103.5228, districts: ["Bulgan", "Khutag-Öndör", "Gurvanbulag"] },
+    { name: "Darkhan-Uul", lat: 49.4867, lng: 105.9228, districts: ["Darkhan", "Sharyngol", "Khongor", "Orkhon"] },
+    { name: "Dornod", lat: 48.0717, lng: 114.5290, districts: ["Choibalsan", "Kherlen", "Dashbalbar"] },
+    { name: "Dornogovi", lat: 44.2000, lng: 110.1000, districts: ["Sainshand", "Zamyn-Üüd", "Airag"] },
+    { name: "Dundgovi", lat: 45.7667, lng: 106.2833, districts: ["Mandalgovi", "Erdenedalai", "Adaatsag"] },
+    { name: "Govi-Altai", lat: 45.5000, lng: 96.2500, districts: ["Altai", "Yesönbulag", "Dariv"] },
+    { name: "Govisümber", lat: 46.3000, lng: 108.4000, districts: ["Choir", "Sumber", "Bayan-Tal"] },
+    { name: "Khentii", lat: 48.0000, lng: 110.0000, districts: ["Chinggis City", "Batnorov", "Binder"] },
+    { name: "Khovd", lat: 47.5000, lng: 92.5000, districts: ["Khovd", "Bulgan", "Darvi"] },
+    { name: "Khövsgöl", lat: 50.5000, lng: 100.0000, districts: ["Mörön", "Khatgal", "Tosontsengel"] },
+    { name: "Orkhon", lat: 49.0333, lng: 104.1500, districts: ["Erdenet", "Jargalant"] },
+    { name: "Ömnögovi", lat: 43.0000, lng: 104.2500, districts: ["Dalanzadgad", "Khanbogd", "Tsogttsetsii"] },
+    { name: "Övörkhangai", lat: 45.7500, lng: 102.7500, districts: ["Arvaikheer", "Kharkhorin", "Uyanga"] },
+    { name: "Selenge", lat: 49.6000, lng: 106.2500, districts: ["Sükhbaatar", "Altanbulag", "Mandal"] },
+    { name: "Sükhbaatar", lat: 46.1000, lng: 113.5000, districts: ["Baruun-Urt", "Erdenetsagaan", "Dariganga"] },
+    { name: "Töv", lat: 47.7000, lng: 106.9000, districts: ["Zuunmod", "Battsengel", "Zaamar"] },
+    { name: "Uvs", lat: 49.5000, lng: 93.0000, districts: ["Ulaangom", "Malchin", "Tarialan"] },
+    { name: "Zavkhan", lat: 48.1000, lng: 96.5000, districts: ["Uliastai", "Tosontsengel", "Ikh-Uul"] }
+];
+
 
 const eventsData = [
   { id: 'future-owner-2022', deadline: '2022-04-10', startDate: '2022-03-25', status: 'ended', registered: 3000, capacity: 3000, title: { mn: '"Ирээдүйн эзэд 2022" Мэргэжил сонголтын аян', en: '"Future Owners 2022" Career Choice Campaign' }, location: { mn: 'Улаанбаатар', en: 'Ulaanbaatar' }, imageUrl: '/data.jpg' },
@@ -277,18 +302,20 @@ export async function GET() {
     
     // --- 1. JOBS ---
    
-    const programCollection = db.collection("programs");
-    await programCollection.deleteMany({});
-    const programsResult = await programCollection.insertMany(PROGRAMS_DATA);
-
+    for (const loc of mongolianLocationsWithCoords) {
+        await db.collection("locations").updateOne(
+            { name: loc.name }, // Find by name
+            { $set: { lat: loc.lat, lng: loc.lng, districts: loc.districts } }, // Update coords
+            { upsert: true } // Create if doesn't exist
+        );
+      }
     return NextResponse.json({ 
       success: true, 
       message: "Database RESET and updated with Dashboard seed data.", 
       counts: {
-       
-        programs: programsResult.insertedCount,
         users: usersData.length,
         opportunities: opportunitiesData.length,
+        locations: mongolianLocationsWithCoords.length
       }
     });
   } catch (e: any) {

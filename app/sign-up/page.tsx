@@ -4,7 +4,17 @@ import { motion, Variants } from "framer-motion";
 import { useLanguage } from "../context/LanguageContext";
 import React, { useState, useMemo } from "react";
 import Link from "next/link";
-import { FaUser, FaLock, FaMapMarkerAlt, FaBirthdayCake, FaEnvelope } from "react-icons/fa";
+import { 
+  FaUser, 
+  FaLock, 
+  FaMapMarkerAlt, 
+  FaBirthdayCake, 
+  FaEnvelope, 
+  FaIdCard, 
+  FaAddressCard,
+  FaEye,
+  FaEyeSlash 
+} from "react-icons/fa";
 import { mongolianLocations } from "./location"; // Adjust path if needed
 import { SignedOut, useSignUp } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
@@ -14,7 +24,9 @@ const registerData = {
     mn: {
         heroQuote: "Өөрчлөлтийн нэг хэсэг болж, нийгэмдээ гэрэл нэмээрэй.",
         title: "Шинэ бүртгэл үүсгэх",
-        idPlaceholder: "Хэрэглэгчийн нэр", 
+        fullNamePlaceholder: "Бүтэн нэр", // New
+        registryPlaceholder: "Регистрийн дугаар", // New
+        idPlaceholder: "Хэрэглэгчийн нэр (Username)", 
         emailPlaceholder: "Имэйл хаяг",
         passwordPlaceholder: "Нууц үг",
         confirmPasswordPlaceholder: "Нууц үг давтах",
@@ -31,7 +43,9 @@ const registerData = {
     en: {
         heroQuote: "Be part of the change and bring light to your community.",
         title: "Create a New Account",
-        idPlaceholder: "Username ",
+        fullNamePlaceholder: "Full Name", // New
+        registryPlaceholder: "National Registry ID", // New
+        idPlaceholder: "Username",
         emailPlaceholder: "Email Address",
         passwordPlaceholder: "Password",
         confirmPasswordPlaceholder: "Confirm Password",
@@ -103,6 +117,8 @@ const RegisterForm: React.FC<{ t: any }> = ({ t }) => {
     const router = useRouter();
     
     // State Variables
+    const [fullName, setFullName] = useState(""); // New
+    const [registryNumber, setRegistryNumber] = useState(""); // New
     const [username, setUsername] = useState("");
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
@@ -111,10 +127,15 @@ const RegisterForm: React.FC<{ t: any }> = ({ t }) => {
     const [selectedProvince, setSelectedProvince] = useState("");
     const [selectedDistrict, setSelectedDistrict] = useState("");
     const [selectedProgram, setSelectedProgram] = useState("");
+    
     const [error, setError] = useState("");
     const [isLoading, setIsLoading] = useState(false);
     const [pendingVerification, setPendingVerification] = useState(false);
     const [code, setCode] = useState("");
+    
+    // Password visibility toggle states
+    const [showPassword, setShowPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
     // Dynamic Districts
     const districts = useMemo(() => {
@@ -141,8 +162,10 @@ const RegisterForm: React.FC<{ t: any }> = ({ t }) => {
                 emailAddress: email,
                 username,
                 password,
-                // We keep unsafeMetadata as a backup/reference in Clerk
+                // We store the new fields in unsafeMetadata
                 unsafeMetadata: {
+                    fullName, // New
+                    registryNumber, // New
                     age: parseInt(age, 10),
                     province: selectedProvince,
                     district: selectedDistrict,
@@ -177,12 +200,14 @@ const RegisterForm: React.FC<{ t: any }> = ({ t }) => {
                 await setActive({ session: result.createdSessionId });
 
                 // B. SYNC TO MONGODB
-                // Call the API route we created to insert user data into Mongo
+                // Include new fields in the sync call
                 try {
                     const syncResponse = await fetch('/api/user/sync', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
+                            fullName, // Syncing new field
+                            registryNumber, // Syncing new field
                             age, 
                             province: selectedProvince,
                             district: selectedDistrict,
@@ -195,7 +220,6 @@ const RegisterForm: React.FC<{ t: any }> = ({ t }) => {
                     }
                 } catch (syncErr) {
                     console.error("Database sync error:", syncErr);
-                    // We don't block login if sync fails, but user might have empty dashboard
                 }
 
                 // C. Redirect to Dashboard
@@ -241,31 +265,104 @@ const RegisterForm: React.FC<{ t: any }> = ({ t }) => {
     // --- Standard Registration Form View ---
     return (
         <form onSubmit={handleSubmit} className="space-y-5">
+            {/* Full Name */}
             <motion.div variants={itemVariants}>
-                <InputField type="text" placeholder={t.idPlaceholder} icon={FaUser} value={username} onChange={(e: any) => setUsername(e.target.value)} />
+                <InputField 
+                    type="text" 
+                    placeholder={t.fullNamePlaceholder} 
+                    icon={FaAddressCard} 
+                    value={fullName} 
+                    onChange={(e: any) => setFullName(e.target.value)} 
+                />
             </motion.div>
+
+            {/* Registry Number */}
             <motion.div variants={itemVariants}>
-                <InputField type="email" placeholder={t.emailPlaceholder} icon={FaEnvelope} value={email} onChange={(e: any) => setEmail(e.target.value)} />
+                <InputField 
+                    type="text" 
+                    placeholder={t.registryPlaceholder} 
+                    icon={FaIdCard} 
+                    value={registryNumber} 
+                    onChange={(e: any) => setRegistryNumber(e.target.value)} 
+                />
             </motion.div>
+
+            {/* Username */}
             <motion.div variants={itemVariants}>
-                <InputField type="password" placeholder={t.passwordPlaceholder} icon={FaLock} value={password} onChange={(e: any) => setPassword(e.target.value)} />
+                <InputField 
+                    type="text" 
+                    placeholder={t.idPlaceholder} 
+                    icon={FaUser} 
+                    value={username} 
+                    onChange={(e: any) => setUsername(e.target.value)} 
+                />
             </motion.div>
+
+            {/* Email */}
             <motion.div variants={itemVariants}>
-                <InputField type="password" placeholder={t.confirmPasswordPlaceholder} icon={FaLock} value={confirmPassword} onChange={(e: any) => setConfirmPassword(e.target.value)} />
+                <InputField 
+                    type="email" 
+                    placeholder={t.emailPlaceholder} 
+                    icon={FaEnvelope} 
+                    value={email} 
+                    onChange={(e: any) => setEmail(e.target.value)} 
+                />
             </motion.div>
+
+            {/* Password */}
             <motion.div variants={itemVariants}>
-                <InputField type="number" placeholder={t.agePlaceholder} icon={FaBirthdayCake} value={age} onChange={(e: any) => setAge(e.target.value)} />
+                <InputField 
+                    type={showPassword ? "text" : "password"} 
+                    placeholder={t.passwordPlaceholder} 
+                    icon={FaLock} 
+                    value={password} 
+                    onChange={(e: any) => setPassword(e.target.value)}
+                    isPassword={true}
+                    showPassword={showPassword}
+                    togglePassword={() => setShowPassword(!showPassword)}
+                />
             </motion.div>
+
+            {/* Confirm Password */}
+            <motion.div variants={itemVariants}>
+                <InputField 
+                    type={showConfirmPassword ? "text" : "password"} 
+                    placeholder={t.confirmPasswordPlaceholder} 
+                    icon={FaLock} 
+                    value={confirmPassword} 
+                    onChange={(e: any) => setConfirmPassword(e.target.value)}
+                    isPassword={true}
+                    showPassword={showConfirmPassword}
+                    togglePassword={() => setShowConfirmPassword(!showConfirmPassword)}
+                />
+            </motion.div>
+
+            {/* Age */}
+            <motion.div variants={itemVariants}>
+                <InputField 
+                    type="number" 
+                    placeholder={t.agePlaceholder} 
+                    icon={FaBirthdayCake} 
+                    value={age} 
+                    onChange={(e: any) => setAge(e.target.value)} 
+                />
+            </motion.div>
+
+            {/* Province Select */}
             <motion.div variants={itemVariants}>
                  <SelectField label={t.provinceLabel} value={selectedProvince} onChange={(e: any) => { setSelectedProvince(e.target.value); setSelectedDistrict(''); }}>
                     {mongolianLocations.map(p => <option key={p.id} value={p.name}>{p.name}</option>)}
                  </SelectField>
             </motion.div>
+            
+            {/* District Select */}
              <motion.div variants={itemVariants}>
                  <SelectField label={t.districtLabel} disabled={!selectedProvince} value={selectedDistrict} onChange={(e: any) => setSelectedDistrict(e.target.value)}>
                     {districts.map(d => <option key={d} value={d}>{d}</option>)}
                  </SelectField>
             </motion.div>
+
+            {/* Program Select */}
              <motion.div variants={itemVariants}>
                  <SelectField label={t.programLabel} value={selectedProgram} onChange={(e: any) => setSelectedProgram(e.target.value)}>
                     {t.programs.map((p: string) => <option key={p} value={p}>{p}</option>)}
@@ -300,10 +397,31 @@ const RegisterForm: React.FC<{ t: any }> = ({ t }) => {
 
 // --- Helper Components ---
 
-const InputField: React.FC<any> = ({ icon: Icon, ...props }) => (
+// Updated InputField with Password Toggle
+const InputField: React.FC<any> = ({ 
+    icon: Icon, 
+    isPassword = false, 
+    showPassword = false, 
+    togglePassword, 
+    ...props 
+}) => (
     <div className="relative">
         <Icon className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
-        <input {...props} required className="w-full bg-white border-2 border-slate-300 rounded-lg py-3 pl-12 pr-4 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition" />
+        <input 
+            {...props} 
+            required 
+            className="w-full bg-white border-2 border-slate-300 rounded-lg py-3 pl-12 pr-12 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition" 
+        />
+        {/* Toggle Eye Icon */}
+        {isPassword && (
+            <button
+                type="button"
+                onClick={togglePassword}
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 focus:outline-none"
+            >
+                {showPassword ? <FaEyeSlash /> : <FaEye />}
+            </button>
+        )}
     </div>
 );
 

@@ -2,17 +2,20 @@
 
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { FaTrash, FaEdit, FaSearch, FaUserShield, FaUser } from "react-icons/fa";
+import { FaTrash, FaEdit, FaSearch, FaUserTag, FaCrown, FaClipboardList } from "react-icons/fa";
 import { useRouter } from "next/navigation";
 
+// 1. UPDATE INTERFACE
 interface User {
   _id: string;
   userId: string;
   name: string;
   email: string;
+  // Rank = Gamification (Bronze/Silver/Gold)
   rank: { current: string };
+  // Role = System Permissions (Volunteer, Manager, Admin)
+  role: "volunteer" | "manager" | "admin"; 
   createdAt: string;
-  imageUrl?: string;
 }
 
 export default function UsersTable({ initialUsers }: { initialUsers: User[] }) {
@@ -29,31 +32,6 @@ export default function UsersTable({ initialUsers }: { initialUsers: User[] }) {
       u.email.toLowerCase().includes(search.toLowerCase())
   );
 
-  // --- DELETE HANDLER ---
-  const handleDelete = async (userId: string) => {
-    if (!confirm("Are you sure you want to delete this user? This cannot be undone.")) return;
-    
-    setLoading(true);
-    try {
-      const res = await fetch("/api/admin/users", {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId }),
-      });
-
-      if (res.ok) {
-        setUsers((prev) => prev.filter((u) => u.userId !== userId));
-        router.refresh();
-      } else {
-        alert("Failed to delete user");
-      }
-    } catch (error) {
-      console.error(error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   // --- UPDATE HANDLER ---
   const handleUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -67,14 +45,14 @@ export default function UsersTable({ initialUsers }: { initialUsers: User[] }) {
         body: JSON.stringify({ 
             userId: editingUser.userId,
             name: editingUser.name,
-            role: editingUser.rank.current 
+            rank: editingUser.rank.current,
+            role: editingUser.role // Sending the new permission role
         }),
       });
 
       if (res.ok) {
-        // Update local state
         setUsers(prev => prev.map(u => u.userId === editingUser.userId ? editingUser : u));
-        setEditingUser(null); // Close modal
+        setEditingUser(null);
         router.refresh();
       }
     } catch (error) {
@@ -84,12 +62,31 @@ export default function UsersTable({ initialUsers }: { initialUsers: User[] }) {
     }
   };
 
+  // --- DELETE HANDLER ---
+  const handleDelete = async (userId: string) => {
+    if (!confirm("Are you sure?")) return;
+    setLoading(true);
+    try {
+        // ... existing delete logic
+        const res = await fetch("/api/admin/users", {
+            method: "DELETE",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ userId }),
+        });
+        if(res.ok) {
+            setUsers((prev) => prev.filter((u) => u.userId !== userId));
+            router.refresh();
+        }
+    } catch(err) { console.error(err) }
+    finally { setLoading(false); }
+  };
+
   return (
     <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
       
-      {/* Header & Search */}
+      {/* Header */}
       <div className="p-6 border-b border-slate-100 flex flex-col md:flex-row gap-4 justify-between items-center">
-        <h2 className="text-xl font-bold text-slate-800">All Users ({users.length})</h2>
+        <h2 className="text-xl font-bold text-slate-800">User Management</h2>
         <div className="relative w-full md:w-64">
           <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
           <input
@@ -108,8 +105,8 @@ export default function UsersTable({ initialUsers }: { initialUsers: User[] }) {
           <thead>
             <tr className="bg-slate-50 text-slate-500 text-sm uppercase">
               <th className="p-4 font-semibold">User</th>
-              <th className="p-4 font-semibold">Role/Rank</th>
-              <th className="p-4 font-semibold">Joined</th>
+              <th className="p-4 font-semibold">System Role</th>
+              <th className="p-4 font-semibold">Volunteer Rank</th>
               <th className="p-4 font-semibold text-right">Actions</th>
             </tr>
           </thead>
@@ -125,8 +122,7 @@ export default function UsersTable({ initialUsers }: { initialUsers: User[] }) {
                 >
                   <td className="p-4">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold overflow-hidden">
-                         {/* Replace with Image tag if user.imageUrl exists */}
+                      <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold">
                          {user.name.charAt(0).toUpperCase()}
                       </div>
                       <div>
@@ -135,28 +131,43 @@ export default function UsersTable({ initialUsers }: { initialUsers: User[] }) {
                       </div>
                     </div>
                   </td>
+                  
+                  {/* SYSTEM ROLE COLUMN */}
                   <td className="p-4">
-                    <span className={`px-3 py-1 rounded-full text-xs font-bold ${
-                        user.rank.current === 'Admin' ? 'bg-purple-100 text-purple-600' : 'bg-green-100 text-green-600'
-                    }`}>
+                    {user.role === 'admin' && (
+                        <span className="flex items-center gap-1 text-xs font-bold px-2 py-1 bg-purple-100 text-purple-700 rounded-full w-fit">
+                            <FaCrown /> Admin
+                        </span>
+                    )}
+                    {user.role === 'manager' && (
+                        <span className="flex items-center gap-1 text-xs font-bold px-2 py-1 bg-orange-100 text-orange-700 rounded-full w-fit">
+                            <FaClipboardList /> Event Manager
+                        </span>
+                    )}
+                    {(!user.role || user.role === 'volunteer') && (
+                        <span className="flex items-center gap-1 text-xs font-bold px-2 py-1 bg-slate-100 text-slate-600 rounded-full w-fit">
+                            <FaUserTag /> Volunteer
+                        </span>
+                    )}
+                  </td>
+
+                  {/* RANK COLUMN */}
+                  <td className="p-4">
+                    <span className="px-3 py-1 rounded-full text-xs font-bold border border-slate-200">
                         {user.rank.current}
                     </span>
                   </td>
-                  <td className="p-4 text-sm text-slate-600">
-                    {new Date(user.createdAt).toLocaleDateString()}
-                  </td>
+
                   <td className="p-4 text-right flex justify-end gap-2">
                     <button 
                         onClick={() => setEditingUser(user)}
                         className="p-2 text-blue-500 hover:bg-blue-50 rounded-lg transition-colors"
-                        title="Edit User"
                     >
                         <FaEdit />
                     </button>
                     <button 
                         onClick={() => handleDelete(user.userId)}
                         className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                        title="Delete User"
                     >
                         <FaTrash />
                     </button>
@@ -166,10 +177,6 @@ export default function UsersTable({ initialUsers }: { initialUsers: User[] }) {
             </AnimatePresence>
           </tbody>
         </table>
-        
-        {filteredUsers.length === 0 && (
-            <div className="p-8 text-center text-slate-500">No users found matching "{search}"</div>
-        )}
       </div>
 
       {/* --- EDIT MODAL --- */}
@@ -180,8 +187,10 @@ export default function UsersTable({ initialUsers }: { initialUsers: User[] }) {
                 animate={{ scale: 1, opacity: 1 }}
                 className="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-md"
             >
-                <h3 className="text-xl font-bold mb-4">Edit User</h3>
+                <h3 className="text-xl font-bold mb-4">Edit User Permissions</h3>
                 <form onSubmit={handleUpdate} className="space-y-4">
+                    
+                    {/* Name Field */}
                     <div>
                         <label className="block text-sm font-bold text-slate-700 mb-1">Full Name</label>
                         <input 
@@ -190,19 +199,39 @@ export default function UsersTable({ initialUsers }: { initialUsers: User[] }) {
                             className="w-full border p-2 rounded-lg"
                         />
                     </div>
+
+                    {/* Role Selector (Permissions) */}
+                    <div className="bg-slate-50 p-4 rounded-lg border border-slate-200">
+                        <label className="block text-sm font-bold text-slate-700 mb-2">System Role (Permissions)</label>
+                        <select 
+                            value={editingUser.role || 'volunteer'}
+                            onChange={(e) => setEditingUser({...editingUser, role: e.target.value as any})}
+                            className="w-full border p-2 rounded-lg bg-white"
+                        >
+                            <option value="volunteer">Volunteer (Default)</option>
+                            <option value="manager">Event Manager (Can Start/End/Report)</option>
+                            <option value="admin">Admin (Full Access)</option>
+                        </select>
+                        <p className="text-xs text-slate-500 mt-2">
+                            * <strong>Event Managers</strong> can view attendee lists and submit grades/reports for events.
+                        </p>
+                    </div>
+
+                    {/* Rank Selector (Gamification) */}
                     <div>
-                        <label className="block text-sm font-bold text-slate-700 mb-1">Rank / Role</label>
+                        <label className="block text-sm font-bold text-slate-700 mb-1">Volunteer Rank</label>
                         <select 
                             value={editingUser.rank.current}
                             onChange={(e) => setEditingUser({...editingUser, rank: {...editingUser.rank, current: e.target.value}})}
                             className="w-full border p-2 rounded-lg"
                         >
-                            <option value="Bronze">Bronze (Volunteer)</option>
-                            <option value="Silver">Silver (Volunteer)</option>
-                            <option value="Gold">Gold (Volunteer)</option>
-                            <option value="Admin">Admin</option>
+                            <option value="Bronze">Bronze</option>
+                            <option value="Silver">Silver</option>
+                            <option value="Gold">Gold</option>
+                            <option value="Platinum">Platinum</option>
                         </select>
                     </div>
+
                     <div className="flex gap-3 justify-end mt-6">
                         <button 
                             type="button"
@@ -223,7 +252,6 @@ export default function UsersTable({ initialUsers }: { initialUsers: User[] }) {
             </motion.div>
         </div>
       )}
-
     </div>
   );
 }

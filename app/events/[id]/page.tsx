@@ -8,11 +8,12 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { 
   FaArrowLeft, FaCalendarAlt, FaMapMarkerAlt, FaUserFriends, 
-  FaClock, FaShareAlt, FaCheckCircle, FaSpinner, FaSignInAlt 
+  FaClock, FaShareAlt, FaCheckCircle, FaSpinner, FaSignInAlt,
+  FaCog, FaClipboardList // Added new icons
 } from "react-icons/fa";
 import Footer from "../../components/Footer";
 
-// Interface update to include participants
+// --- Types ---
 interface Participant {
     userId: string;
     name: string;
@@ -29,8 +30,9 @@ interface EventItem {
   registered: number;
   capacity: number;
   title: { mn: string; en: string };
+  description: { mn: string; en: string };
   location: { mn: string; en: string };
-  participants?: Participant[]; // New field
+  participants?: Participant[]; 
 }
 
 export default function SingleEventPage() {
@@ -44,8 +46,16 @@ export default function SingleEventPage() {
   const [isRegistering, setIsRegistering] = useState(false);
   const [isRegistered, setIsRegistered] = useState(false);
 
+  // --- 0. PERMISSION CHECK ---
+  // Get the role from Clerk metadata
+  const userRole = user?.publicMetadata?.role as string | undefined;
+  const isManager = userRole === 'admin' || userRole === 'manager';
+  
+  // Normalize ID for links
+  const eventId = Array.isArray(params.id) ? params.id[0] : params.id;
+
+  // --- 1. FETCH EVENT DATA ---
   useEffect(() => {
-    const eventId = Array.isArray(params.id) ? params.id[0] : params.id;
     if (!eventId) return;
 
     async function fetchEvent() {
@@ -55,7 +65,6 @@ export default function SingleEventPage() {
         if (json.success) {
           setEvent(json.data);
           
-          // Check if current user is already in the participants list
           if (user && json.data.participants) {
              const alreadyJoined = json.data.participants.some((p: any) => p.userId === user.id);
              if (alreadyJoined) setIsRegistered(true);
@@ -68,13 +77,15 @@ export default function SingleEventPage() {
       }
     }
     fetchEvent();
-  }, [params.id, user]); // Re-run if user loads
+  }, [eventId, user]);
 
+  // --- 2. HANDLE REGISTRATION ---
   const handleRegister = async () => {
     if (!user) {
         router.push('/sign-in');
         return;
     }
+
     setIsRegistering(true);
 
     try {
@@ -89,13 +100,13 @@ export default function SingleEventPage() {
         if (res.ok && data.success) {
             setIsRegistered(true);
             
-            // Optimistic UI Update: Add myself to the list visually
             if (event) {
-                const newParticipant = {
+                const newParticipant: Participant = {
                     userId: user.id,
-                    name: user.firstName || "Me",
+                    name: user.fullName || user.username || "Volunteer",
                     imageUrl: user.imageUrl
                 };
+
                 setEvent({ 
                     ...event, 
                     registered: event.registered + 1,
@@ -103,6 +114,8 @@ export default function SingleEventPage() {
                 });
             }
             setTimeout(() => router.push('/dashboard'), 2000);
+        } else {
+            alert("Registration failed. Please try again.");
         }
     } catch (err) {
         console.error("Registration error:", err);
@@ -111,7 +124,7 @@ export default function SingleEventPage() {
     }
   };
 
-  // ... (Your translations object remains here) ...
+  // --- Translations ---
   const t = {
     mn: { 
       back: "Арга хэмжээ рүү буцах", 
@@ -128,7 +141,10 @@ export default function SingleEventPage() {
       about: "Арга хэмжээний тухай",
       volunteers: "Оролцогчид",
       joinUs: "Бидэнтэй нэгдээрэй!",
-      description_placeholder: "Энэхүү арга хэмжээ нь залуучуудын хөгжлийг дэмжих зорилготой."
+      description_placeholder: "Энэхүү арга хэмжээний дэлгэрэнгүй мэдээлэл удахгүй орно.",
+      // New translations
+      managerTools: "Менежерийн хэрэгсэл",
+      viewReport: "Тайлан харах / Засах"
     },
     en: { 
       back: "Back to Events", 
@@ -145,32 +161,58 @@ export default function SingleEventPage() {
       about: "About Event",
       volunteers: "Volunteers",
       joinUs: "Join the team!",
-      description_placeholder: "This event aims to support youth development."
+      description_placeholder: "Details for this event will be updated soon.",
+      // New translations
+      managerTools: "Manager Tools",
+      viewReport: "View / Edit Report"
     }
   };
 
   const labels = t[language];
   const isRegisterable = event?.status === 'open';
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
+  if (loading) return (
+    <div className="min-h-screen flex flex-col items-center justify-center space-y-4">
+        <FaSpinner className="animate-spin text-4xl text-blue-600" />
+        <p className="text-slate-500">{labels.loading}</p>
+    </div>
+  );
+  
   if (!event) return <div className="p-10 text-center">Event not found.</div>;
 
   return (
     <div className="min-h-screen bg-slate-50 pb-20">
       
-      {/* Hero Header (Unchanged) */}
-      <div className="relative h-[400px] w-full bg-slate-900">
-        <img src={event.imageUrl} className="w-full h-full object-cover opacity-60" />
-        <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-transparent to-transparent" />
+      {/* --- HERO HEADER --- */}
+      <div className="relative h-[400px] w-full bg-slate-900 group">
+        <img 
+            src={event.imageUrl} 
+            alt={event.title[language]}
+            className="w-full h-full object-cover opacity-60 group-hover:scale-105 transition-transform duration-700" 
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/40 to-transparent" />
+        
         <div className="absolute bottom-0 left-0 w-full p-6 md:p-12">
             <div className="max-w-7xl mx-auto">
-                <Link href="/events" className="inline-flex items-center gap-2 text-slate-300 hover:text-white mb-6">
+                <Link href="/events" className="inline-flex items-center gap-2 text-slate-300 hover:text-white mb-6 transition-colors">
                     <FaArrowLeft /> {labels.back}
                 </Link>
-                <h1 className="text-3xl md:text-5xl font-bold text-white mb-4 shadow-sm">{event.title[language]}</h1>
-                <div className="flex flex-wrap items-center gap-6 text-slate-200">
-                    <span className="flex items-center gap-2"><FaCalendarAlt className="text-cyan-400"/> {event.startDate}</span>
-                    <span className="flex items-center gap-2"><FaMapMarkerAlt className="text-red-400"/> {event.location[language]}</span>
+                
+                <motion.h1 
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="text-3xl md:text-5xl font-bold text-white mb-4 shadow-sm"
+                >
+                    {event.title[language]}
+                </motion.h1>
+
+                <div className="flex flex-wrap items-center gap-6 text-slate-200 font-medium">
+                    <span className="flex items-center gap-2 bg-slate-800/50 px-3 py-1 rounded-full backdrop-blur-sm border border-slate-700">
+                        <FaCalendarAlt className="text-cyan-400"/> {new Date(event.startDate).toLocaleDateString()}
+                    </span>
+                    <span className="flex items-center gap-2 bg-slate-800/50 px-3 py-1 rounded-full backdrop-blur-sm border border-slate-700">
+                        <FaMapMarkerAlt className="text-red-400"/> {event.location[language]}
+                    </span>
                 </div>
             </div>
         </div>
@@ -178,27 +220,54 @@ export default function SingleEventPage() {
 
       <div className="max-w-7xl mx-auto px-4 mt-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
         
-        {/* Left Column: Description */}
+        {/* --- LEFT COLUMN: DESCRIPTION --- */}
         <div className="lg:col-span-2 space-y-8">
             <div className="bg-white rounded-2xl p-8 shadow-sm border border-slate-100">
-                <h2 className="text-2xl font-bold text-slate-800 mb-4">{labels.about}</h2>
-                <p className="text-slate-600 leading-relaxed text-lg">{labels.description_placeholder}</p>
+                <h2 className="text-2xl font-bold text-slate-800 mb-6 flex items-center gap-2">
+                    {labels.about}
+                </h2>
+                <div className="prose prose-slate max-w-none text-slate-600 leading-relaxed text-lg">
+                    {event.description?.[language] || labels.description_placeholder}
+                </div>
             </div>
         </div>
 
-        {/* Right Column: Sidebar */}
+        {/* --- RIGHT COLUMN: SIDEBAR --- */}
         <div className="lg:col-span-1 space-y-6">
-            <div className="sticky top-8 space-y-6">
+            <div className="sticky top-24 space-y-6">
                 
-                {/* Registration Card */}
-                <div className="bg-white rounded-2xl p-6 shadow-xl border border-slate-100">
+                {/* --- 1. NEW: MANAGER TOOLS (Conditional Render) --- */}
+                {isManager && (
+                    <div className="bg-slate-800 rounded-2xl p-6 shadow-xl border border-slate-700 text-white">
+                        <h4 className="font-bold flex items-center gap-2 mb-4 text-yellow-400 border-b border-slate-600 pb-2">
+                            <FaCog className="animate-spin-slow" /> {labels.managerTools}
+                        </h4>
+                        <div className="space-y-3">
+                            <Link 
+                                href={`/events/${eventId}/report`}
+                                className="w-full py-3 bg-blue-600 hover:bg-blue-700 rounded-lg font-bold flex items-center justify-center gap-2 transition-all hover:scale-[1.02] shadow-lg"
+                            >
+                                <FaClipboardList /> {labels.viewReport}
+                            </Link>
+                        </div>
+                    </div>
+                )}
+
+                {/* --- 2. REGISTRATION CARD --- */}
+                <div className="bg-white rounded-2xl p-6 shadow-xl border border-slate-100 ring-1 ring-slate-100">
                     <div className="mb-6 pb-6 border-b border-slate-100">
                         <div className="flex justify-between items-center mb-2">
                             <span className="text-slate-500 font-medium">{labels.capacity}</span>
                             <span className="font-bold text-slate-800">{event.registered} / {event.capacity}</span>
                         </div>
-                        <div className="w-full bg-slate-100 rounded-full h-2">
-                            <div className={`h-2 rounded-full ${event.status === 'full' ? 'bg-red-500' : 'bg-blue-600'}`} style={{ width: `${Math.min((event.registered / event.capacity) * 100, 100)}%` }}></div>
+                        {/* Progress Bar */}
+                        <div className="w-full bg-slate-100 rounded-full h-3 overflow-hidden">
+                            <motion.div 
+                                initial={{ width: 0 }}
+                                animate={{ width: `${Math.min((event.registered / event.capacity) * 100, 100)}%` }}
+                                transition={{ duration: 1, ease: "easeOut" }}
+                                className={`h-full rounded-full ${event.status === 'full' ? 'bg-red-500' : 'bg-blue-600'}`} 
+                            />
                         </div>
                     </div>
 
@@ -206,8 +275,10 @@ export default function SingleEventPage() {
                         <button 
                             onClick={handleRegister}
                             disabled={isRegistering || isRegistered}
-                            className={`w-full py-4 font-bold rounded-xl transition-all shadow-lg flex items-center justify-center gap-2
-                                ${isRegistered ? "bg-green-500 text-white cursor-default" : "bg-blue-600 hover:bg-blue-700 text-white hover:-translate-y-1"}
+                            className={`w-full py-4 font-bold rounded-xl transition-all shadow-lg flex items-center justify-center gap-2 text-lg
+                                ${isRegistered 
+                                    ? "bg-green-100 text-green-700 border border-green-200 cursor-default" 
+                                    : "bg-blue-600 hover:bg-blue-700 text-white hover:shadow-blue-200 hover:-translate-y-1"}
                                 ${isRegistering ? "opacity-75 cursor-wait" : ""}
                             `}
                         >
@@ -216,47 +287,63 @@ export default function SingleEventPage() {
                              isRegistered ? <><FaCheckCircle /> {labels.success}</> : labels.register}
                         </button>
                     ) : (
-                        <button disabled className="w-full py-4 bg-slate-200 text-slate-500 font-bold rounded-xl cursor-not-allowed">
+                        <button disabled className="w-full py-4 bg-slate-100 text-slate-400 font-bold rounded-xl cursor-not-allowed border border-slate-200">
                             {event.status === 'full' ? labels.full : labels.ended}
                         </button>
                     )}
                 </div>
 
-                {/* --- NEW SECTION: VOLUNTEERS LIST --- */}
+                {/* --- 3. VOLUNTEERS LIST --- */}
                 <div className="bg-white rounded-2xl p-6 shadow-md border border-slate-100">
-                    <h4 className="font-bold text-slate-800 mb-4 flex items-center gap-2">
-                        <FaUserFriends className="text-blue-500" /> {labels.volunteers}
-                    </h4>
+                    <div className="flex items-center justify-between mb-4">
+                        <h4 className="font-bold text-slate-800 flex items-center gap-2">
+                            <FaUserFriends className="text-blue-500" /> {labels.volunteers}
+                        </h4>
+                        {event.participants && event.participants.length > 0 && (
+                            <span className="bg-blue-50 text-blue-600 text-xs font-bold px-2 py-1 rounded-lg">
+                                {event.participants.length}
+                            </span>
+                        )}
+                    </div>
                     
                     {event.participants && event.participants.length > 0 ? (
-                        <div className="flex -space-x-3 overflow-hidden p-2">
-                            {event.participants.slice(0, 8).map((p, i) => (
-                                <img 
-                                    key={i} 
-                                    className="inline-block h-10 w-10 rounded-full ring-2 ring-white object-cover" 
-                                    src={p.imageUrl} 
-                                    alt={p.name} 
-                                    title={p.name}
-                                />
-                            ))}
-                            {event.participants.length > 8 && (
-                                <div className="flex items-center justify-center h-10 w-10 rounded-full ring-2 ring-white bg-slate-100 text-xs font-bold text-slate-500">
-                                    +{event.participants.length - 8}
-                                </div>
-                            )}
+                        <div className="flex flex-col gap-3">
+                            <div className="flex -space-x-3 overflow-hidden p-2 justify-center">
+                                {event.participants.slice(0, 8).map((p, i) => (
+                                    <img 
+                                        key={i} 
+                                        className="inline-block h-10 w-10 rounded-full ring-2 ring-white object-cover bg-slate-200" 
+                                        src={p.imageUrl || "/default-avatar.png"} 
+                                        alt={p.name} 
+                                        title={p.name}
+                                    />
+                                ))}
+                                {event.participants.length > 8 && (
+                                    <div className="flex items-center justify-center h-10 w-10 rounded-full ring-2 ring-white bg-slate-100 text-xs font-bold text-slate-500 z-10">
+                                        +{event.participants.length - 8}
+                                    </div>
+                                )}
+                            </div>
+                            
+                            <p className="text-center text-xs text-slate-400">
+                                {event.participants.slice(0,3).map(p => p.name.split(' ')[0]).join(', ')} 
+                                {event.participants.length > 3 ? ` and ${event.participants.length - 3} others` : ''} joined.
+                            </p>
                         </div>
                     ) : (
-                        <p className="text-sm text-slate-500 italic">{labels.joinUs}</p>
+                        <div className="text-center py-4 bg-slate-50 rounded-lg border border-dashed border-slate-200">
+                            <p className="text-sm text-slate-500 italic">{labels.joinUs}</p>
+                        </div>
                     )}
                 </div>
 
-                {/* Info Card */}
+                {/* --- 4. INFO CARD --- */}
                 <div className="bg-white rounded-2xl p-6 shadow-md border border-slate-100">
                     <div className="space-y-4">
-                        <InfoRow icon={FaCalendarAlt} label={labels.date} value={event.startDate} />
-                        <InfoRow icon={FaClock} label="Deadline" value={event.deadline.split('T')[0]} />
+                        <InfoRow icon={FaCalendarAlt} label={labels.date} value={new Date(event.startDate).toLocaleDateString()} />
+                        <InfoRow icon={FaClock} label="Deadline" value={new Date(event.deadline).toLocaleDateString()} />
                     </div>
-                    <button className="w-full mt-6 py-2 border border-slate-200 rounded-lg text-slate-600 font-medium hover:bg-slate-50 flex items-center justify-center gap-2">
+                    <button className="w-full mt-6 py-2 border border-slate-200 rounded-lg text-slate-600 font-medium hover:bg-slate-50 flex items-center justify-center gap-2 transition-colors">
                         <FaShareAlt /> {labels.share}
                     </button>
                 </div>
@@ -270,18 +357,12 @@ export default function SingleEventPage() {
   );
 }
 
-// --- Helper Components ---
 const InfoRow = ({ icon: Icon, label, value }: any) => (
-    <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3 text-slate-500">
+    <div className="flex items-center justify-between group">
+        <div className="flex items-center gap-3 text-slate-500 group-hover:text-blue-600 transition-colors">
             <Icon className="text-blue-500" />
             <span className="text-sm font-medium">{label}</span>
         </div>
         <span className="text-sm font-bold text-slate-800">{value}</span>
     </div>
 );
-
-const useCountdown = (targetDate: string) => {
-    // ... same as before
-    return { days: 0, hours: 0, minutes: 0, seconds: 0 }; 
-};

@@ -1,96 +1,44 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
+import dynamic from "next/dynamic";
 import { motion } from "framer-motion";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
 import { 
-  FaUsers, FaCalendarAlt, FaHandsHelping, FaClipboardList, 
-  FaChartLine, FaCog, FaSignOutAlt, FaUserPlus, FaGlobe
+  FaUsers, FaCalendarAlt, FaClipboardList, 
+  FaUserPlus, FaMapMarkedAlt
 } from "react-icons/fa";
-import { SignOutButton } from "@clerk/nextjs";
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer 
 } from 'recharts';
-import { useLanguage } from "../context/LanguageContext"; // Adjust path if needed
+import { useLanguage } from "../context/LanguageContext"; 
 
-// --- TRANSLATION DATA ---
+// --- IMPORTS ---
+// 1. Import the types we just exported from the map file
+import { UserLocation, LocationData } from "../map/Volunteermap"; 
+
+// 2. Dynamic Import
+const VolunteerMap = dynamic(() => import("../map/Volunteermap"), {
+    ssr: false,
+    loading: () => <div className="h-[400px] w-full bg-slate-100 animate-pulse rounded-xl flex items-center justify-center text-slate-400">Loading Map...</div>
+});
+
 const adminTranslations = {
   mn: {
-    sidebar: {
-      title: "Админ Панель",
-      dashboard: "Хяналтын самбар",
-      users: "Хэрэглэгчид",
-      events: "Арга хэмжээ",
-      opportunities: "Сайн дурын ажил",
-      settings: "Тохиргоо",
-      role: "Супер Админ",
-      signout: "Гарах"
-    },
-    header: {
-      title: "Хяналтын Самбар",
-      subtitle: "Тавтай морил, өнөөдрийн статистик мэдээлэл.",
-      viewSite: "Вэбсайт руу очих"
-    },
-    stats: {
-      totalUsers: "Нийт хэрэглэгч",
-      newUsers: "Өнөөдөр бүртгүүлсэн",
-      activeEvents: "Идэвхтэй эвэнт",
-      applications: "Бүртгэлүүд",
-      growth: "Өсөлттэй!",
-      noSignups: "Бүртгэл алга"
-    },
-    chart: {
-      title: "Хэрэглэгчийн өсөлт (Сүүлийн 7 хоног)"
-    },
-    actions: {
-      title: "Шуурхай үйлдлүүд",
-      postEvent: "Шинэ эвэнт нийтлэх",
-      reviewApps: "Бүртгэл шалгах",
-      editRoles: "Хэрэглэгчийн эрх засах"
-    },
-    status: {
-      label: "Системийн төлөв:",
-      value: "Хэвийн"
-    }
+    header: { title: "Хяналтын Самбар", subtitle: "Тавтай морил, өнөөдрийн статистик мэдээлэл.", viewSite: "Вэбсайт руу очих" },
+    stats: { totalUsers: "Нийт хэрэглэгч", newUsers: "Өнөөдөр бүртгүүлсэн", activeEvents: "Идэвхтэй эвэнт", applications: "Бүртгэлүүд", growth: "Өсөлттэй!", noSignups: "Бүртгэл алга" },
+    map: { title: "Сайн дурынхны байршил", subtitle: "Хэрэглэгчдийн тархалт (Аймгаар)" },
+    chart: { title: "Хэрэглэгчийн өсөлт (Сүүлийн 7 хоног)" },
+    actions: { title: "Шуурхай үйлдлүүд", postEvent: "Шинэ эвэнт нийтлэх", reviewApps: "Бүртгэл шалгах", editRoles: "Хэрэглэгчийн эрх засах" },
+    status: { label: "Системийн төлөв:", value: "Хэвийн" }
   },
   en: {
-    sidebar: {
-      title: "Admin Panel",
-      dashboard: "Dashboard",
-      users: "Manage Users",
-      events: "Events",
-      opportunities: "Opportunities",
-      settings: "Settings",
-      role: "Super Admin",
-      signout: "Sign Out"
-    },
-    header: {
-      title: "Dashboard Overview",
-      subtitle: "Welcome back, here is what's happening today.",
-      viewSite: "View Live Site"
-    },
-    stats: {
-      totalUsers: "Total Users",
-      newUsers: "New Users Today",
-      activeEvents: "Active Events",
-      applications: "Applications",
-      growth: "Growth!",
-      noSignups: "No signups yet"
-    },
-    chart: {
-      title: "User Signups (Last 7 Days)"
-    },
-    actions: {
-      title: "Quick Actions",
-      postEvent: "Post New Event",
-      reviewApps: "Review Applications",
-      editRoles: "Edit User Roles"
-    },
-    status: {
-      label: "System Status:",
-      value: "Operational"
-    }
+    header: { title: "Dashboard Overview", subtitle: "Welcome back, here is what's happening today.", viewSite: "View Live Site" },
+    stats: { totalUsers: "Total Users", newUsers: "New Users Today", activeEvents: "Active Events", applications: "Applications", growth: "Growth!", noSignups: "No signups yet" },
+    map: { title: "Volunteer Distribution", subtitle: "User Density Map by Province" },
+    chart: { title: "User Signups (Last 7 Days)" },
+    actions: { title: "Quick Actions", postEvent: "Post New Event", reviewApps: "Review Applications", editRoles: "Edit User Roles" },
+    status: { label: "System Status:", value: "Operational" }
   }
 };
 
@@ -103,39 +51,58 @@ interface AdminProps {
     applications: number;
     signupsToday: number;
   };
-  chartData: any[];
+  chartData: { date: string; signups: number }[];
+  allUsers: UserLocation[]; // Typed correctly now
 }
 
-export default function AdminDashboardClient({ user, stats, chartData }: AdminProps) {
+export default function AdminDashboardClient({ user, stats, chartData, allUsers }: AdminProps) {
   const { language, setLanguage } = useLanguage();
   const t = adminTranslations[language];
 
-  // Simple toggle function for the admin panel
+  // Typed State
+  const [locations, setLocations] = useState<LocationData[]>([]);
+
+  useEffect(() => {
+    async function fetchLocations() {
+      try {
+        const res = await fetch('/api/locations');
+        const data = await res.json();
+        if (data.success) {
+            setLocations(data.locations);
+        }
+      } catch (e) {
+        console.error("Failed to load map locations", e);
+      }
+    }
+    fetchLocations();
+  }, []);
+
   const toggleLanguage = () => {
     setLanguage(language === "mn" ? "en" : "mn");
   };
 
   return (
     <div className="min-h-screen bg-slate-100 flex">
-      
-    
-
-      {/* --- Main Content --- */}
       <main className="pt-24 flex-1 p-8 overflow-y-auto ml-64">
+        {/* Header */}
         <header className="mb-8 flex justify-between items-center">
             <div>
                 <h2 className="text-3xl font-bold text-slate-800">{t.header.title}</h2>
                 <p className="text-slate-500">{t.header.subtitle}</p>
             </div>
-            <Link href="/" className="px-4 py-2 bg-white border border-slate-300 rounded-lg text-sm font-bold text-slate-600 hover:bg-slate-50 transition-colors">
-                {t.header.viewSite}
-            </Link>
+            <div className="flex gap-4">
+                 <button onClick={toggleLanguage} className="px-4 py-2 bg-white border border-slate-300 rounded-lg text-sm font-bold text-slate-600 hover:bg-slate-50 transition-colors">
+                    {language === 'mn' ? 'EN' : 'MN'}
+                </button>
+                <Link href="/" className="px-4 py-2 bg-blue-600 border border-blue-600 rounded-lg text-sm font-bold text-white hover:bg-blue-700 transition-colors shadow-lg shadow-blue-200">
+                    {t.header.viewSite}
+                </Link>
+            </div>
         </header>
 
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
             <StatCard icon={FaUsers} label={t.stats.totalUsers} value={stats.users} color="bg-blue-500" />
-            
             <StatCard 
                 icon={FaUserPlus} 
                 label={t.stats.newUsers} 
@@ -143,64 +110,56 @@ export default function AdminDashboardClient({ user, stats, chartData }: AdminPr
                 color="bg-emerald-500" 
                 subtext={stats.signupsToday > 0 ? t.stats.growth : t.stats.noSignups}
             />
-            
             <StatCard icon={FaCalendarAlt} label={t.stats.activeEvents} value={stats.events} color="bg-purple-500" />
             <StatCard icon={FaClipboardList} label={t.stats.applications} value={stats.applications} color="bg-orange-500" />
         </div>
 
-        {/* --- Charts Section --- */}
+        {/* Map Section */}
+        <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 mb-8">
+            <div className="flex items-center gap-3 mb-6 border-b border-slate-100 pb-4">
+                <div className="p-2 bg-blue-100 rounded-lg text-blue-600">
+                    <FaMapMarkedAlt className="text-xl" />
+                </div>
+                <div>
+                    <h3 className="text-lg font-bold text-slate-800">{t.map.title}</h3>
+                    <p className="text-xs text-slate-500">{t.map.subtitle}</p>
+                </div>
+            </div>
+            <div className="w-full h-[400px]">
+                <VolunteerMap users={allUsers} locations={locations} />
+            </div>
+        </div>
+
+        {/* Charts & Actions Section */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            
-            {/* 1. Main Chart: User Growth */}
             <div className="lg:col-span-2 bg-white p-6 rounded-xl shadow-sm border border-slate-200">
                 <h3 className="text-lg font-bold text-slate-800 mb-6">{t.chart.title}</h3>
                 <div className="h-64 w-full">
                     <ResponsiveContainer width="100%" height="100%">
                         <BarChart data={chartData}>
                             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                            <XAxis 
-                                dataKey="date" 
-                                axisLine={false} 
-                                tickLine={false} 
-                                tick={{fill: '#64748b', fontSize: 12}} 
-                                dy={10}
-                            />
-                            <YAxis 
-                                axisLine={false} 
-                                tickLine={false} 
-                                tick={{fill: '#64748b', fontSize: 12}} 
-                                allowDecimals={false}
-                            />
-                            <Tooltip 
-                                cursor={{fill: '#f1f5f9'}}
-                                contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-                            />
-                            <Bar 
-                                dataKey="signups" 
-                                fill="#3b82f6" 
-                                radius={[4, 4, 0, 0]} 
-                                barSize={40}
-                            />
+                            <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{fill: '#64748b', fontSize: 12}} dy={10} />
+                            <YAxis axisLine={false} tickLine={false} tick={{fill: '#64748b', fontSize: 12}} allowDecimals={false} />
+                            <Tooltip cursor={{fill: '#f1f5f9'}} contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
+                            <Bar dataKey="signups" fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={40} />
                         </BarChart>
                     </ResponsiveContainer>
                 </div>
             </div>
 
-            {/* 2. Side Panel: Quick Actions */}
             <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 flex flex-col">
                 <h3 className="text-lg font-bold text-slate-800 mb-4">{t.actions.title}</h3>
                 <div className="flex flex-col gap-3">
-                    <Link href="/admin/events" className="p-3 bg-slate-50 hover:bg-slate-100 rounded-lg text-sm text-slate-600 font-medium transition-colors flex justify-between items-center">
-                        {t.actions.postEvent} <span>→</span>
+                    <Link href="/admin/events" className="p-3 bg-slate-50 hover:bg-slate-100 rounded-lg text-sm text-slate-600 font-medium transition-colors flex justify-between items-center group">
+                        {t.actions.postEvent} <span className="group-hover:translate-x-1 transition-transform">→</span>
                     </Link>
-                    <Link href="/admin/opportunities" className="p-3 bg-slate-50 hover:bg-slate-100 rounded-lg text-sm text-slate-600 font-medium transition-colors flex justify-between items-center">
-                        {t.actions.reviewApps} <span>→</span>
+                    <Link href="/admin/opportunities" className="p-3 bg-slate-50 hover:bg-slate-100 rounded-lg text-sm text-slate-600 font-medium transition-colors flex justify-between items-center group">
+                        {t.actions.reviewApps} <span className="group-hover:translate-x-1 transition-transform">→</span>
                     </Link>
-                    <Link href="/admin/users" className="p-3 bg-slate-50 hover:bg-slate-100 rounded-lg text-sm text-slate-600 font-medium transition-colors flex justify-between items-center">
-                        {t.actions.editRoles} <span>→</span>
+                    <Link href="/admin/users" className="p-3 bg-slate-50 hover:bg-slate-100 rounded-lg text-sm text-slate-600 font-medium transition-colors flex justify-between items-center group">
+                        {t.actions.editRoles} <span className="group-hover:translate-x-1 transition-transform">→</span>
                     </Link>
                 </div>
-                
                 <div className="mt-auto pt-6 border-t border-slate-100">
                     <p className="text-xs text-slate-400">{t.status.label} <span className="text-green-500 font-bold">{t.status.value}</span></p>
                 </div>
@@ -211,26 +170,16 @@ export default function AdminDashboardClient({ user, stats, chartData }: AdminPr
   );
 }
 
-// --- Sub Components ---
+// --- FIXED StatCard with Proper Types ---
+interface StatCardProps {
+    icon: React.ElementType; // The correct type for an Icon component
+    label: string;
+    value: number;
+    color: string;
+    subtext?: string;
+}
 
-const NavItem = ({ icon: Icon, label, href }: { icon: any, label: string, href: string }) => {
-    const pathname = usePathname();
-    const isActive = href === "/admin" ? pathname === "/admin" : pathname.startsWith(href);
-
-    return (
-        <Link 
-            href={href} 
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors duration-200 ${
-                isActive ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/20' : 'text-slate-400 hover:bg-slate-800 hover:text-white'
-            }`}
-        >
-            <Icon className="text-lg" />
-            <span className="font-medium">{label}</span>
-        </Link>
-    );
-};
-
-const StatCard = ({ icon: Icon, label, value, color, subtext }: any) => (
+const StatCard = ({ icon: Icon, label, value, color, subtext }: StatCardProps) => (
     <motion.div 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}

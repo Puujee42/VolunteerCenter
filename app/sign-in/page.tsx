@@ -4,9 +4,9 @@ import { motion, Variants } from "framer-motion";
 import { useLanguage } from "../context/LanguageContext";
 import React, { useState } from "react";
 import Link from "next/link";
-import { FaUser, FaLock } from "react-icons/fa";
-import { useSignIn } from "@clerk/nextjs"; // --- 1. IMPORT CLERK'S useSignIn HOOK ---
-import { useRouter } from "next/navigation"; // --- 2. IMPORT NEXT.JS ROUTER ---
+import { FaUser, FaLock, FaEye, FaEyeSlash } from "react-icons/fa"; // Added Eye icons
+import { useSignIn } from "@clerk/nextjs"; 
+import { useRouter } from "next/navigation"; 
 
 // --- Bilingual Data Store ---
 const loginData = {
@@ -78,15 +78,16 @@ const LoginPage = () => {
 
 // --- Sub-Component for the Form ---
 const LoginForm: React.FC<{ t: any }> = ({ t }) => {
-    // --- 3. INITIALIZE HOOKS AND STATE ---
     const { isLoaded, signIn, setActive } = useSignIn();
     const router = useRouter();
-    const [identifier, setIdentifier] = useState(''); // Can be username or email
+    const [identifier, setIdentifier] = useState(''); 
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    
+    // State to toggle password visibility
+    const [showPassword, setShowPassword] = useState(false);
 
-    // --- 4. THE REAL LOGIN LOGIC ---
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!isLoaded) return;
@@ -95,22 +96,18 @@ const LoginForm: React.FC<{ t: any }> = ({ t }) => {
         setError('');
 
         try {
-            // Start the sign-in process
             const result = await signIn.create({
                 identifier,
                 password,
             });
 
-            // If sign-in is complete, set the active session and redirect
             if (result.status === "complete") {
                 await setActive({ session: result.createdSessionId });
                 router.push("/dashboard");
             } else {
-                // Handle other cases like multi-factor authentication if needed
                 console.log(result);
             }
         } catch (err: any) {
-            // Handle errors (e.g., wrong password, user not found)
             console.error(JSON.stringify(err, null, 2));
             setError(err.errors[0]?.longMessage || "Sign-in failed. Please check your credentials.");
         } finally {
@@ -119,13 +116,30 @@ const LoginForm: React.FC<{ t: any }> = ({ t }) => {
     };
 
     return (
-        // --- 5. BIND STATE AND ADD LOADING/ERROR HANDLING ---
         <form onSubmit={handleSubmit} className="space-y-6">
             <motion.div variants={itemVariants}>
-                 <InputField type="text" placeholder={t.idPlaceholder} icon={FaUser} value={identifier} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setIdentifier(e.target.value)} />
+                 <InputField 
+                    type="text" 
+                    placeholder={t.idPlaceholder} 
+                    icon={FaUser} 
+                    value={identifier} 
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setIdentifier(e.target.value)} 
+                 />
             </motion.div>
+            
             <motion.div variants={itemVariants}>
-                 <InputField type="password" placeholder={t.passwordPlaceholder} icon={FaLock} value={password} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)} />
+                 <InputField 
+                    // Dynamic type based on state
+                    type={showPassword ? "text" : "password"} 
+                    placeholder={t.passwordPlaceholder} 
+                    icon={FaLock} 
+                    value={password} 
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
+                    // Props for password toggle functionality
+                    isPassword={true}
+                    showPassword={showPassword}
+                    togglePassword={() => setShowPassword(!showPassword)}
+                 />
             </motion.div>
 
             {error && <p className="text-red-500 text-sm text-center -mt-2 mb-2">{error}</p>}
@@ -145,12 +159,44 @@ const LoginForm: React.FC<{ t: any }> = ({ t }) => {
     );
 }
 
-// --- Your unchanged components below ---
+// --- Updated Input Field Component ---
 
-const InputField: React.FC<any> = ({ icon: Icon, ...props }) => (
+interface InputFieldProps extends React.InputHTMLAttributes<HTMLInputElement> {
+    icon: React.ElementType;
+    isPassword?: boolean;
+    showPassword?: boolean;
+    togglePassword?: () => void;
+}
+
+const InputField: React.FC<InputFieldProps> = ({ 
+    icon: Icon, 
+    isPassword = false, 
+    showPassword = false, 
+    togglePassword, 
+    ...props 
+}) => (
     <div className="relative">
+        {/* Left Icon */}
         <Icon className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
-        <input {...props} required className="w-full bg-white border-2 border-slate-300 rounded-lg py-3 pl-12 pr-4 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition" />
+        
+        {/* Input Field */}
+        <input 
+            {...props} 
+            required 
+            // Add extra padding on the right if it's a password field so text doesn't hit the eye icon
+            className={`w-full bg-white border-2 border-slate-300 rounded-lg py-3 pl-12 ${isPassword ? 'pr-12' : 'pr-4'} focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition`} 
+        />
+
+        {/* Password Toggle Button (Eye Icon) */}
+        {isPassword && (
+            <button
+                type="button" // Important to prevent form submission
+                onClick={togglePassword}
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 focus:outline-none"
+            >
+                {showPassword ? <FaEyeSlash size={20} /> : <FaEye size={20} />}
+            </button>
+        )}
     </div>
 );
 

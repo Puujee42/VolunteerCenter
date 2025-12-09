@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { currentUser, clerkClient } from "@clerk/nextjs/server";
+import { currentUser } from "@clerk/nextjs/server";
 import clientPromise from "@/lib/mongo/mongodb";
 
 // Security Check Helper
@@ -11,28 +11,57 @@ async function checkAdmin() {
   return user;
 }
 
-// --- UPDATE USER (PATCH) ---
+// --- 1. GET ALL USERS ---
+export async function GET() {
+  try {
+    await checkAdmin();
+
+    const client = await clientPromise;
+    const db = client.db("volunteer_db");
+
+    // SIMPLIFIED: Just fetch the users. 
+    // We do NOT need to join with locations here because 
+    // the Frontend (VolunteerMap) handles the translation and matching.
+    const users = await db.collection("users")
+      .find({})
+      .project({
+          userId: 1,
+          name: 1,
+          email: 1,
+          imageUrl: 1,
+          province: 1, // <--- IMPORTANT: Ensure this is sent
+          role: 1,
+          "rank.current": 1,
+          createdAt: 1
+      })
+      .toArray();
+
+    return NextResponse.json({ success: true, users });
+  } catch (error: any) {
+    console.error("API Error:", error);
+    return NextResponse.json({ success: false, users: [], error: error.message }, { status: 403 });
+  }
+}
+
+// --- 2. UPDATE USER (PATCH) ---
 export async function PATCH(req: Request) {
   try {
-    await checkAdmin(); // Ensure requester is admin
+    await checkAdmin(); 
     const { userId, name, role } = await req.json();
 
     const client = await clientPromise;
     const db = client.db("volunteer_db");
 
-    // 1. Update in MongoDB
     await db.collection("users").updateOne(
       { userId: userId },
       { 
         $set: { 
           name: name,
-          "rank.current": role // Assuming we map Role to Rank for simplicity, or add a specific role field
+          role: role, 
+          "rank.current": role === 'admin' ? 'Admin' : 'Bronze' 
         } 
       }
     );
-
-    // 2. Optional: Sync Role to Clerk Metadata (if you want this user to be an admin too)
-    // if (role === 'admin') { ...clerk logic... }
 
     return NextResponse.json({ success: true });
   } catch (error: any) {
@@ -40,24 +69,16 @@ export async function PATCH(req: Request) {
   }
 }
 
-// --- DELETE USER (DELETE) ---
+// --- 3. DELETE USER (DELETE) ---
 export async function DELETE(req: Request) {
   try {
-    await checkAdmin(); // Ensure requester is admin
+    await checkAdmin();
     const { userId } = await req.json();
 
     const client = await clientPromise;
     const db = client.db("volunteer_db");
 
-    // 1. Delete from MongoDB
     await db.collection("users").deleteOne({ userId: userId });
-
-    // 2. Delete from Clerk (Optional - strictly requires Clerk Backend API)
-    // try {
-    //   await clerkClient.users.deleteUser(userId);
-    // } catch (e) {
-    //   console.log("Could not delete from Clerk, likely purely a DB delete.");
-    // }
 
     return NextResponse.json({ success: true });
   } catch (error: any) {
