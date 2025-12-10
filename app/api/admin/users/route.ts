@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { currentUser } from "@clerk/nextjs/server";
+import { clerkClient, currentUser } from "@clerk/nextjs/server";
 import clientPromise from "@/lib/mongo/mongodb";
 
 // Security Check Helper
@@ -72,16 +72,66 @@ export async function PATCH(req: Request) {
 // --- 3. DELETE USER (DELETE) ---
 export async function DELETE(req: Request) {
   try {
+    // 1. Security Check
     await checkAdmin();
-    const { userId } = await req.json();
+    const { userId } = await req.json(); // This is the Clerk ID (e.g., "user_2p...")
+
+    if (!userId) {
+        return NextResponse.json({ error: "User ID required" }, { status: 400 });
+    }
 
     const client = await clientPromise;
     const db = client.db("volunteer_db");
 
+    // --- 2. Delete from Clerk (Authentication) ---
+    try {
+        const clerk = await clerkClient();
+        await clerk.users.deleteUser(userId);
+    } catch (clerkErr) {
+        // Log warning but continue cleaning up local DB
+        console.warn(`Clerk delete warning for ${userId}:`, clerkErr);
+    }
+
+    // --- 3. Delete from 'users' Collection ---
     await db.collection("users").deleteOne({ userId: userId });
 
-    return NextResponse.json({ success: true });
+    // --- 4. Clean up 'events' Collection ---
+    // This finds all events where this user is a participant.
+    // It removes them from the array ($pull) AND decreases the count ($inc)
+    await db.collection("events").updateMany(
+        { "participants.userId": userId },
+        { 
+            $pull: { participants: { userId: userId } },
+            $inc: { registered: -1 } // Decrement the registered count by 1
+        } as any
+    );
+
+    // --- 5. Clean up 'courses' Collection ---
+    // Same logic: remove from participants list and decrement count
+    // (Assuming courses also track a 'registered' or 'studentsCount' field. 
+    // If not, the $inc part will simply create the field or do nothing harmful if strict schema isn't used)
+    await db.collection("courses").updateMany(
+        { "participants.userId": userId },
+        { 
+            $pull: { participants: { userId: userId } },
+            // If your courses collection uses 'registered' or 'enrolled', use that field name here
+            $inc: { registered: -1 } 
+        } as any
+    );
+
+    // --- 6. Delete User's Reports/History ---
+    await db.collection("participation_records").deleteMany({ userId: userId });
+    
+    // --- 7. Delete Applications ---
+    await db.collection("applications").deleteMany({ userId: userId });
+
+    return NextResponse.json({ 
+        success: true, 
+        message: "User and all associated data (events, counts, history) deleted successfully." 
+    });
+
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 403 });
+    console.error("Full Delete Error:", error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

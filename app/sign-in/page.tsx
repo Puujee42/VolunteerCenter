@@ -153,7 +153,7 @@ const LoginForm: React.FC<{ t: any }> = ({ t }) => {
                 </motion.button>
             </motion.div>
              <motion.p variants={itemVariants} className="text-center text-slate-600 pt-4">
-                {t.signupPrompt} <Link href="/register" className="font-semibold text-blue-600 hover:underline">{t.signupLink}</Link>
+                {t.signupPrompt} <Link href="/sign-up" className="font-semibold text-blue-600 hover:underline">{t.signupLink}</Link>
             </motion.p>
         </form>
     );
