@@ -15,7 +15,18 @@ export interface ProgramItem {
   focus: { mn: string[]; en: string[] };
   color: string; // Tailwind classes string
 }
-
+interface Product {
+  _id: string;
+  name: string;
+  description: string;
+  price: number;
+  currency: 'MNT' | 'USD';
+  imageUrl: string;
+  category: string; // e.g., "Apparel", "Accessories", "Stationery"
+  stock: number; // How many are available
+  sku?: string; // Stock Keeping Unit
+  createdAt: Date;
+}
 export interface ProgramPageData {
   heroTitle: string;
   heroSubtitle: string;
