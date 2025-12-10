@@ -2,17 +2,18 @@
 
 import { motion, Variants } from "framer-motion";
 import { useLanguage } from "../context/LanguageContext";
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect, useRef } from "react";
 import Link from "next/link";
 import { 
   FaUser, FaLock, FaMapMarkerAlt, FaBirthdayCake, 
-  FaEnvelope, FaIdCard, FaAddressCard, FaEye, FaEyeSlash, FaBuilding, FaHandshake
+  FaEnvelope, FaIdCard, FaAddressCard, FaEye, FaEyeSlash, FaBuilding, FaHandshake, FaGraduationCap, FaSearch
 } from "react-icons/fa";
 import { SignedOut, useSignUp } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 
-// --- 1. IMPORT YOUR STATIC LOCATIONS FILE ---
-import { mongolianLocations } from "./location"; // Adjust path if file name is different (e.g. ./data)
+// --- IMPORTS ---
+import { mongolianLocations } from "./location"; 
+import { highSchools, universities } from "./education"; // Ensure this path is correct
 
 // --- Bilingual Data Store ---
 const registerData = {
@@ -28,8 +29,11 @@ const registerData = {
         agePlaceholder: "Нас",
         provinceLabel: "Аймаг/Нийслэл сонгох",
         districtLabel: "Сум/Дүүрэг сонгох",
+        educationLevelLabel: "Боловсролын түвшин",
+        schoolLabel: "Сургууль хайх",
         programLabel: "Хөтөлбөр сонгох",
         partnerLabel: "Харьяалагдах байгууллага",
+        educationLevels: ["ЕБС (Дунд сургууль)", "Их Дээд Сургууль"],
         programs: ["AND", "EDU", "V", "Одоогоор мэдэхгүй"],
         partnersList: [
             "Volunteer Center Mongolia",
@@ -70,8 +74,11 @@ const registerData = {
         agePlaceholder: "Age",
         provinceLabel: "Select Province/City",
         districtLabel: "Select District/Soum",
+        educationLevelLabel: "Education Level",
+        schoolLabel: "Search School",
         programLabel: "Choose a Program",
         partnerLabel: "Affiliated Organization",
+        educationLevels: ["High School (K-12)", "University/College"],
         programs: ["AND", "EDU", "V", "I don't know yet"],
         partnersList: [
             "Volunteer Center Mongolia",
@@ -144,7 +151,6 @@ const RegisterPage = () => {
                         </div>
                         
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-2 text-blue-100/70 text-xs">
-                            {/* Display first 10-12 partners to keep layout clean */}
                             {t.partnersList.slice(0, 12).map((partner, index) => (
                                 <div key={index} className="flex items-start gap-2 group hover:text-white transition-colors">
                                     <span className="mt-1.5 w-1 h-1 rounded-full bg-blue-500 shrink-0"></span>
@@ -177,7 +183,7 @@ const RegisterForm: React.FC<{ t: any }> = ({ t }) => {
     const { isLoaded, signUp, setActive } = useSignUp();
     const router = useRouter();
     
-    // State
+    // Standard Inputs
     const [fullName, setFullName] = useState("");
     const [registryNumber, setRegistryNumber] = useState("");
     const [username, setUsername] = useState("");
@@ -185,28 +191,60 @@ const RegisterForm: React.FC<{ t: any }> = ({ t }) => {
     const [password, setPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
     const [age, setAge] = useState("");
+    
+    // Selects
     const [selectedProvince, setSelectedProvince] = useState("");
     const [selectedDistrict, setSelectedDistrict] = useState("");
     const [selectedProgram, setSelectedProgram] = useState("");
-    const [selectedPartner, setSelectedPartner] = useState(""); // Partner State
+    const [selectedPartner, setSelectedPartner] = useState(""); 
+    
+    // --- EDUCATION STATE ---
+    const [educationLevel, setEducationLevel] = useState("High School"); // "High School" or "University"
+    const [selectedSchool, setSelectedSchool] = useState("");
+    const [schoolSearch, setSchoolSearch] = useState("");
+    const [isSchoolDropdownOpen, setIsSchoolDropdownOpen] = useState(false);
+    const schoolWrapperRef = useRef<HTMLDivElement>(null);
 
+    // Form Status
     const [error, setError] = useState("");
     const [isLoading, setIsLoading] = useState(false);
     const [pendingVerification, setPendingVerification] = useState(false);
     const [code, setCode] = useState("");
-    
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-    // --- USE STATIC LOCATIONS ---
+    // --- LOGIC: Locations ---
     const districts = useMemo(() => {
         if (!selectedProvince) return [];
-        // Find province in the imported static array
         const province = mongolianLocations.find(p => p.name === selectedProvince);
         return province ? province.districts : [];
     }, [selectedProvince]);
 
-    // Handle Submit
+    // --- LOGIC: Schools Filtering ---
+    const schoolOptions = useMemo(() => {
+        // Choose list based on level
+        const sourceList = educationLevel === "University" ? universities : highSchools;
+        
+        if (!schoolSearch) return sourceList.slice(0, 50); // Show first 50 if empty
+        
+        // Filter based on search input
+        return sourceList.filter(s => 
+            s.name.toLowerCase().includes(schoolSearch.toLowerCase())
+        ).slice(0, 50); // Limit results for performance
+    }, [educationLevel, schoolSearch]);
+
+    // Close dropdown if clicking outside
+    useEffect(() => {
+        function handleClickOutside(event: MouseEvent) {
+            if (schoolWrapperRef.current && !schoolWrapperRef.current.contains(event.target as Node)) {
+                setIsSchoolDropdownOpen(false);
+            }
+        }
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, []);
+
+    // --- SUBMIT ---
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!isLoaded || isLoading) return;
@@ -231,7 +269,9 @@ const RegisterForm: React.FC<{ t: any }> = ({ t }) => {
                     province: selectedProvince,
                     district: selectedDistrict,
                     program: selectedProgram,
-                    partner: selectedPartner, // Save Partner
+                    partner: selectedPartner,
+                    educationLevel,      // Save Level
+                    school: selectedSchool // Save School Name
                 },
             });
 
@@ -246,7 +286,7 @@ const RegisterForm: React.FC<{ t: any }> = ({ t }) => {
         }
     };
 
-    // Handle Verify
+    // --- VERIFY ---
     const handleVerify = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!isLoaded || isLoading) return;
@@ -272,7 +312,9 @@ const RegisterForm: React.FC<{ t: any }> = ({ t }) => {
                             province: selectedProvince,
                             district: selectedDistrict,
                             program: selectedProgram,
-                            partner: selectedPartner // Sync Partner
+                            partner: selectedPartner,
+                            educationLevel,
+                            school: selectedSchool
                         })
                     });
                 } catch (syncErr) { console.error(syncErr); }
@@ -305,6 +347,7 @@ const RegisterForm: React.FC<{ t: any }> = ({ t }) => {
 
     return (
         <form onSubmit={handleSubmit} className="space-y-5">
+            {/* Standard Inputs */}
             <motion.div variants={itemVariants}>
                 <InputField type="text" placeholder={t.fullNamePlaceholder} icon={FaAddressCard} value={fullName} onChange={(e: any) => setFullName(e.target.value)} />
             </motion.div>
@@ -327,7 +370,7 @@ const RegisterForm: React.FC<{ t: any }> = ({ t }) => {
                 <InputField type="number" placeholder={t.agePlaceholder} icon={FaBirthdayCake} value={age} onChange={(e: any) => setAge(e.target.value)} />
             </motion.div>
 
-            {/* Static Province Select */}
+            {/* --- LOCATION --- */}
             <motion.div variants={itemVariants}>
                  <SelectField 
                     label={t.provinceLabel} 
@@ -337,15 +380,83 @@ const RegisterForm: React.FC<{ t: any }> = ({ t }) => {
                     {mongolianLocations.map((p) => <option key={p.id} value={p.name}>{p.name}</option>)}
                  </SelectField>
             </motion.div>
-            
-            {/* Static District Select */}
              <motion.div variants={itemVariants}>
                  <SelectField label={t.districtLabel} disabled={!selectedProvince} value={selectedDistrict} onChange={(e: any) => setSelectedDistrict(e.target.value)}>
                     {districts.map((d) => <option key={d} value={d}>{d}</option>)}
                  </SelectField>
             </motion.div>
 
-            {/* Partner Select */}
+            {/* --- EDUCATION SECTION --- */}
+            <motion.div variants={itemVariants} className="pt-2 border-t border-slate-200 mt-2">
+                <p className="text-sm font-bold text-slate-500 mb-3 uppercase tracking-wider">Education Info</p>
+                
+                {/* Level Selection */}
+                <div className="flex gap-2 mb-4">
+                    <button 
+                        type="button"
+                        onClick={() => { setEducationLevel("High School"); setSchoolSearch(""); setSelectedSchool(""); }}
+                        className={`flex-1 py-2 text-sm font-bold rounded-lg border transition-all ${educationLevel === "High School" ? "bg-blue-100 border-blue-500 text-blue-700" : "bg-white border-slate-300 text-slate-600 hover:bg-slate-50"}`}
+                    >
+                        {t.educationLevels[0]}
+                    </button>
+                    <button 
+                        type="button"
+                        onClick={() => { setEducationLevel("University"); setSchoolSearch(""); setSelectedSchool(""); }}
+                        className={`flex-1 py-2 text-sm font-bold rounded-lg border transition-all ${educationLevel === "University" ? "bg-blue-100 border-blue-500 text-blue-700" : "bg-white border-slate-300 text-slate-600 hover:bg-slate-50"}`}
+                    >
+                        {t.educationLevels[1]}
+                    </button>
+                </div>
+
+                {/* School Searchable Combobox */}
+                <div className="relative" ref={schoolWrapperRef}>
+                    <label className="block text-sm font-semibold text-slate-600 mb-2">{t.schoolLabel}</label>
+                    <div className="relative">
+                        <FaGraduationCap className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+                        <input 
+                            type="text"
+                            placeholder="Type to search school..."
+                            value={selectedSchool || schoolSearch}
+                            onChange={(e) => { 
+                                setSchoolSearch(e.target.value); 
+                                setSelectedSchool(""); // Reset selection when typing
+                                setIsSchoolDropdownOpen(true);
+                            }}
+                            onFocus={() => setIsSchoolDropdownOpen(true)}
+                            className="w-full bg-white border-2 border-slate-300 rounded-lg py-3 pl-12 pr-10 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition"
+                        />
+                        {/* Search Icon Indicator */}
+                        <div className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400">
+                             <FaSearch />
+                        </div>
+                    </div>
+
+                    {/* Dropdown Results */}
+                    {isSchoolDropdownOpen && (
+                        <div className="absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-xl max-h-60 overflow-y-auto custom-scrollbar">
+                            {schoolOptions.length > 0 ? (
+                                schoolOptions.map((school) => (
+                                    <div 
+                                        key={school.id}
+                                        onClick={() => {
+                                            setSelectedSchool(school.name);
+                                            setSchoolSearch(""); // Clear search temp
+                                            setIsSchoolDropdownOpen(false);
+                                        }}
+                                        className="px-4 py-3 hover:bg-blue-50 cursor-pointer text-sm text-slate-700 border-b border-slate-50 last:border-0 transition-colors"
+                                    >
+                                        {school.name}
+                                    </div>
+                                ))
+                            ) : (
+                                <div className="px-4 py-3 text-sm text-slate-400 italic">No schools found</div>
+                            )}
+                        </div>
+                    )}
+                </div>
+            </motion.div>
+
+            {/* --- PARTNER & PROGRAM --- */}
             <motion.div variants={itemVariants}>
                  <SelectField label={t.partnerLabel} icon={FaBuilding} value={selectedPartner} onChange={(e: any) => setSelectedPartner(e.target.value)}>
                     {t.partnersList.map((p: string) => <option key={p} value={p}>{p}</option>)}
