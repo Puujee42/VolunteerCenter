@@ -61,7 +61,12 @@ export const universities = [
 
 // A. Famous / Named Schools (UB)
 const namedSchoolsUB = [
-  { id: "SHINE_MONGOL", name: "Шинэ Монгол Сургууль" },
+  // This is the updated entry
+  { 
+    id: "SHINE_MONGOL", 
+    name: "Шинэ Монгол Сургууль",
+    programs: ["Tomyo", "Olula Tomyo", "E-Start", "General (Ерөнхий)"] 
+  },
   { id: "ORCHLON", name: "Орчлон Олон Улсын Сургууль" },
   { id: "HOBBY", name: "Хобби Сургууль" },
   { id: "SANT", name: "Сант Сургууль" },
@@ -100,7 +105,7 @@ const namedSchoolsRural = [
 
 // C. Generators
 
-// 1. Generate UB Numbered Schools (1-165, filtering named ones)
+// 1. Generate UB Numbered Schools (1-165)
 const ubNumberedSchools = Array.from({ length: 165 }, (_, i) => {
   const num = i + 1;
   return {
@@ -109,8 +114,7 @@ const ubNumberedSchools = Array.from({ length: 165 }, (_, i) => {
   };
 });
 
-// 2. Generate Aimag Schools (Aimag Name + Number 1-10)
-// This ensures we cover "Arkhangai 1-r", "Khovd 2-r", etc.
+// 2. Generate Aimag Schools (Aimag Name + Number)
 const aimags = [
   "Архангай", "Баян-Өлгий", "Баянхонгор", "Булган", "Говь-Алтай", "Говьсүмбэр", 
   "Дархан-Уул", "Дорноговь", "Дорнод", "Дундговь", "Завхан", "Орхон", 
@@ -121,8 +125,6 @@ const aimags = [
 const aimagSchools: { id: string; name: string }[] = [];
 
 aimags.forEach(aimag => {
-  // Generate generic numbered schools 1-10 for each Aimag (covers most sum/center schools)
-  // For larger places like Erdenet/Darkhan we generate more
   const limit = (aimag === "Дархан-Уул" || aimag === "Орхон") ? 25 : 8;
   
   for (let i = 1; i <= limit; i++) {
@@ -131,14 +133,13 @@ aimags.forEach(aimag => {
       name: `${aimag} ${i}-р сургууль`
     });
   }
-  // Add a generic "Other" for each aimag for soum schools
   aimagSchools.push({
     id: `${aimag}_SOUM`,
     name: `${aimag} - Сумын сургууль (Бусад)`
   });
 });
 
-// --- COMBINE ALL ---
+// --- COMBINE ALL HIGH SCHOOLS ---
 export const highSchools = [
   ...namedSchoolsUB,
   ...namedSchoolsRural,
@@ -148,6 +149,7 @@ export const highSchools = [
   { id: "OTHER", name: "Бусад / Жагсаалтад байхгүй" }
 ];
 
+// --- FINAL EXPORT FOR GROUPED OPTIONS ---
 export const allEducationInstitutions = [
   { label: "Их Дээд Сургуулиуд", options: universities },
   { label: "Ерөнхий Боловсролын Сургуулиуд", options: highSchools }

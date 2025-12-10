@@ -9,7 +9,7 @@ import { FaArrowRight } from "react-icons/fa";
 const greetingsData = {
   mn: {
     sectionTitle: "Захирлын мэндчилгээ",
-    directorName: "Д. Ганзориг",
+    directorName: "Б.Цэвэлмаа",
     directorTitle: "Гүйцэтгэх захирал, VCM",
     content: [
       "Монголын сайн дурынхны төвийн нэрийн өмнөөс та бүхэнд энэ өдрийн мэндийг хүргэе. 2007 оноос хойш бид хүмүүнлэг, иргэний ардчилсан нийгмийг бүтээхэд хувь нэмрээ оруулах эрхэм зорилгын дор нэгдэн, 50 гаруй үндэсний хэмжээний төсөл хөтөлбөрийг амжилттай хэрэгжүүлээд байна.",
@@ -18,7 +18,7 @@ const greetingsData = {
     partnersTitle: "Бидний итгэлт түншүүд",
     buttonText: "Бидэнтэй нэгдэх",
     buttonLink: "/join",
-    directorImage: "/tsev.png", // Director's portrait
+    directorImage: "/tsevlee.jpg", // Director's portrait
     signatureImage: "/tsev.png", // Director's signature
     partners: [
         { name: "MLSP", logo: "/mlsp.png" },
@@ -32,7 +32,7 @@ const greetingsData = {
   },
   en: {
     sectionTitle: "A Message From Our Director",
-    directorName: "Ganzorig D.",
+    directorName: "Tsevelmaa B.",
     directorTitle: "Executive Director, VCM",
     content: [
       "On behalf of the Mongolian Volunteer Center, I extend my warmest greetings. Since 2007, we have been united under the noble goal of contributing to a humane and democratic society, successfully implementing over 50 national-level projects.",
@@ -41,7 +41,7 @@ const greetingsData = {
     partnersTitle: "Our Trusted Partners",
     buttonText: "Join Our Mission",
     buttonLink: "/join",
-    directorImage: "/tsev.png",
+    directorImage: "/tsevlee.jpg",
     signatureImage: "/tsev.png",
     partners: [
         { name: "MLSP", logo: "/mlsp.png" },
