@@ -28,7 +28,10 @@ export default async function AdminUsersPage() {
     email: u.email,
     rank: u.rank || { current: "Bronze" }, // Fallback if missing
     createdAt: u.createdAt ? new Date(u.createdAt).toISOString() : new Date().toISOString(),
-    imageUrl: u.imageUrl
+    imageUrl: u.imageUrl,
+    province: u.province || "Unknown", // Fallback if missing
+    city: u.city || "Unknown" // Fallback if missing
+    
   }));
 
   return (

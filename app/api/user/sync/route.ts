@@ -1,74 +1,87 @@
+// /app/api/user/sync/route.ts
+
 import clientPromise from "@/lib/mongo/mongodb";
 import { NextResponse } from "next/server";
-import { currentUser } from "@clerk/nextjs/server";
+import { clerkClient, currentUser } from "@clerk/nextjs/server";
 
 export async function POST(req: Request) {
   try {
-    // 1. Verify the user is authenticated via Clerk
     const clerkUser = await currentUser();
-    
     if (!clerkUser) {
       return NextResponse.json({ success: false, message: "Unauthorized" }, { status: 401 });
     }
 
-    // 2. Get data sent from the frontend
     const body = await req.json();
-    const { age, province, district, program } = body;
+
+    // --- DEBUGGING STEP ---
+    // This will print the exact data your backend is receiving in your terminal.
+    console.log("SYNC API RECEIVED BODY:", body);
+    // --------------------
+
+    const { 
+      fullName, registryNumber, age, province, district, 
+      educationLevel, school, partner, program 
+    } = body;
 
     const client = await clientPromise;
     const db = client.db("volunteer_db");
     const usersCollection = db.collection("users");
 
-    // 3. Check if user already exists to prevent duplicates
     const existingUser = await usersCollection.findOne({ userId: clerkUser.id });
     if (existingUser) {
       return NextResponse.json({ success: true, message: "User already exists" });
     }
 
-    // 4. Create the NEW USER Object with Default Dashboard Data
-    // This structure matches what your Dashboard expects
     const newUserProfile = {
       userId: clerkUser.id,
-      name: `${clerkUser.firstName || ""} ${clerkUser.lastName || ""}`.trim() || clerkUser.username || "Volunteer",
+      name: clerkUser.username,
+      fullName: fullName,
       email: clerkUser.emailAddresses[0]?.emailAddress,
-      // Custom Fields from Sign Up
+      imageUrl: clerkUser.imageUrl,
+      role: 'volunteer',
+      
       profileDetails: {
-        age: parseInt(age),
+        registryNumber: registryNumber || null,
+        // The CORRECT and SAFE logic for handling age
+        age: age && age !== "" ? parseInt(age, 10) : null,
         province,
         district,
+        educationLevel,
+        school,
+        partner,
         program
       },
-      // --- DEFAULT DASHBOARD DATA ---
-      rank: {
-        current: "Bronze",
-        progress: 0,
-        iconName: "FaMedal" 
-      },
+      
+      rank: { current: "Bronze", progress: 0, iconName: "FaMedal" },
       strengths: [
-        { skill: 'Motivation', value: 100 },
-        { skill: 'Teamwork', value: 50 },
+        { skill: 'Motivation', value: 30 }, { skill: 'Teamwork', value: 25 },
+        { skill: 'Communication', value: 20 }, { skill: 'Leadership', value: 15 },
+        { skill: 'Problem Solving', value: 10 },
       ],
       history: [
         { 
+          id: `initial-${clerkUser.id}`,
           date: new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' }), 
-          title: 'Joined Platform', 
-          description: 'Account successfully created.', 
-          iconName: 'FaFlag' 
+          title: 'Joined the Platform!', 
+          description: 'Your volunteer journey begins now. Welcome!', 
+          iconName: 'FaFlag', type: 'milestone'
         }
       ],
-      activities: [], // Empty initially
       recommendations: [
         { 
-          title: 'Complete your Profile', 
-          description: 'Add more details to get better recommendations.', 
-          iconName: 'FaUser' 
+          title: 'Find your first opportunity', 
+          description: 'Check the "Discover" section for new events and jobs.', 
+          iconName: 'FaHandsHelping' 
         }
       ],
       createdAt: new Date(),
     };
 
-    // 5. Insert into MongoDB
     await usersCollection.insertOne(newUserProfile);
+    const clerk = await clerkClient();
+    await clerk.users.updateUser(clerkUser.id, {
+        publicMetadata: { role: 'volunteer' }
+    });
 
     return NextResponse.json({ success: true, message: "User synced to MongoDB" });
 

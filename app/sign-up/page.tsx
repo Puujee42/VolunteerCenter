@@ -306,14 +306,14 @@ const RegisterForm: React.FC<{ t: any }> = ({ t }) => {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
-                            fullName,
-                            registryNumber,
-                            age, 
+                            fullName:fullName,
+                            registryNumber:registryNumber,
+                            age:age, 
                             province: selectedProvince,
                             district: selectedDistrict,
                             program: selectedProgram,
                             partner: selectedPartner,
-                            educationLevel,
+                            educationLevel:educationLevel,
                             school: selectedSchool
                         })
                     });

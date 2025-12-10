@@ -11,17 +11,29 @@ async function checkAdmin() {
   return user;
 }
 
-// --- 1. GET ALL USERS ---
-export async function GET() {
+// --- 1. GET USER(S) ---
+// This function now handles two cases:
+// - /api/admin/users -> Fetches a list of all users (for the main table)
+// - /api/admin/users?userId=... -> Fetches all details for ONE user (for the edit form)
+export async function GET(req: Request) {
   try {
     await checkAdmin();
+    const { searchParams } = new URL(req.url);
+    const userId = searchParams.get("userId");
 
     const client = await clientPromise;
     const db = client.db("volunteer_db");
 
-    // SIMPLIFIED: Just fetch the users. 
-    // We do NOT need to join with locations here because 
-    // the Frontend (VolunteerMap) handles the translation and matching.
+    // --- Case 1: Fetch a SINGLE user's FULL details ---
+    if (userId) {
+      const user = await db.collection("users").findOne({ userId: userId });
+      if (!user) {
+        return NextResponse.json({ success: false, error: "User not found" }, { status: 404 });
+      }
+      return NextResponse.json({ success: true, user });
+    }
+
+    // --- Case 2: Fetch ALL users' basic details ---
     const users = await db.collection("users")
       .find({})
       .project({
@@ -29,7 +41,7 @@ export async function GET() {
           name: 1,
           email: 1,
           imageUrl: 1,
-          province: 1, // <--- IMPORTANT: Ensure this is sent
+          province: 1,
           role: 1,
           "rank.current": 1,
           createdAt: 1
@@ -38,43 +50,82 @@ export async function GET() {
 
     return NextResponse.json({ success: true, users });
   } catch (error: any) {
-    console.error("API Error:", error);
-    return NextResponse.json({ success: false, users: [], error: error.message }, { status: 403 });
+    console.error("API GET Error:", error);
+    return NextResponse.json({ success: false, error: error.message }, { status: 403 });
   }
 }
 
 // --- 2. UPDATE USER (PATCH) ---
+// Now accepts and updates the full profile.
 export async function PATCH(req: Request) {
   try {
     await checkAdmin(); 
-    const { userId, name, role } = await req.json();
+    const body = await req.json();
+    const { 
+      userId, 
+      name, 
+      role, 
+      age, 
+      province, 
+      district, 
+      school, 
+      partner, 
+      program 
+    } = body;
+
+    if (!userId) {
+      return NextResponse.json({ error: "User ID is required" }, { status: 400 });
+    }
 
     const client = await clientPromise;
     const db = client.db("volunteer_db");
+    
+    // Find the current rank to avoid overwriting it if the role isn't changing to admin
+    const existingUser = await db.collection("users").findOne({ userId: userId }, { projection: { "rank.current": 1 } });
+    const currentRank = existingUser?.rank?.current || 'Bronze';
+
+    // Construct the update object with all fields
+    const updateDocument = {
+      $set: {
+        name: name,
+        role: role,
+        // Update profile details using dot notation for safety
+        "profileDetails.age": age,
+        "profileDetails.province": province,
+        "profileDetails.district": district,
+        "profileDetails.school": school,
+        "profileDetails.partner": partner,
+        "profileDetails.program": program,
+        // Update rank based on role
+        "rank.current": role === 'admin' ? 'Admin' : currentRank
+      }
+    };
 
     await db.collection("users").updateOne(
       { userId: userId },
-      { 
-        $set: { 
-          name: name,
-          role: role, 
-          "rank.current": role === 'admin' ? 'Admin' : 'Bronze' 
-        } 
-      }
+      updateDocument
     );
 
-    return NextResponse.json({ success: true });
+    // Also update Clerk's public metadata for role consistency
+    const clerk = await clerkClient();
+    await clerk.users.updateUser(userId, {
+        publicMetadata: { role: role }
+    });
+
+    return NextResponse.json({ success: true, message: "User updated successfully." });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 403 });
+    console.error("API PATCH Error:", error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
 
+
 // --- 3. DELETE USER (DELETE) ---
+// This function remains unchanged as it already performs a full cleanup.
 export async function DELETE(req: Request) {
   try {
-    // 1. Security Check
     await checkAdmin();
-    const { userId } = await req.json(); // This is the Clerk ID (e.g., "user_2p...")
+    const { userId } = await req.json(); 
 
     if (!userId) {
         return NextResponse.json({ error: "User ID required" }, { status: 400 });
@@ -83,51 +134,43 @@ export async function DELETE(req: Request) {
     const client = await clientPromise;
     const db = client.db("volunteer_db");
 
-    // --- 2. Delete from Clerk (Authentication) ---
+    // Delete from Clerk
     try {
-        const clerk = await clerkClient();
-        await clerk.users.deleteUser(userId);
+        await (await clerkClient()).users.deleteUser(userId);
     } catch (clerkErr) {
-        // Log warning but continue cleaning up local DB
         console.warn(`Clerk delete warning for ${userId}:`, clerkErr);
     }
 
-    // --- 3. Delete from 'users' Collection ---
+    // Delete from MongoDB 'users' Collection
     await db.collection("users").deleteOne({ userId: userId });
 
-    // --- 4. Clean up 'events' Collection ---
-    // This finds all events where this user is a participant.
-    // It removes them from the array ($pull) AND decreases the count ($inc)
+    // Clean up event participants
     await db.collection("events").updateMany(
         { "participants.userId": userId },
         { 
             $pull: { participants: { userId: userId } },
-            $inc: { registered: -1 } // Decrement the registered count by 1
+            $inc: { registered: -1 }
         } as any
     );
 
-    // --- 5. Clean up 'courses' Collection ---
-    // Same logic: remove from participants list and decrement count
-    // (Assuming courses also track a 'registered' or 'studentsCount' field. 
-    // If not, the $inc part will simply create the field or do nothing harmful if strict schema isn't used)
+    // Clean up course participants
     await db.collection("courses").updateMany(
         { "participants.userId": userId },
         { 
             $pull: { participants: { userId: userId } },
-            // If your courses collection uses 'registered' or 'enrolled', use that field name here
             $inc: { registered: -1 } 
         } as any
     );
 
-    // --- 6. Delete User's Reports/History ---
+    // Delete User's Reports/History
     await db.collection("participation_records").deleteMany({ userId: userId });
     
-    // --- 7. Delete Applications ---
+    // Delete Applications
     await db.collection("applications").deleteMany({ userId: userId });
 
     return NextResponse.json({ 
         success: true, 
-        message: "User and all associated data (events, counts, history) deleted successfully." 
+        message: "User and all associated data deleted successfully." 
     });
 
   } catch (error: any) {
