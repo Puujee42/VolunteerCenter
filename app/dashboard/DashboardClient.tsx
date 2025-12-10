@@ -7,18 +7,19 @@ import {
   FaUserCircle, FaMapMarkedAlt, FaTasks, FaBirthdayCake, 
   FaMedal, FaClipboardList, FaLightbulb, FaHandsHelping, 
   FaChartPie, FaCheckCircle, FaLeaf, FaPaw, FaGraduationCap, 
-  FaFlag, FaUser, FaPlusCircle, FaCalendarAlt, FaSignOutAlt, FaTrash 
+  FaFlag, FaUser, FaPlusCircle, FaCalendarAlt, FaSignOutAlt, FaTrash, 
+  FaHandshake
 } from 'react-icons/fa';
 import { 
     Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer 
 } from 'recharts';
 
-// --- 1. ICON MAPPER ---
+// --- 1. ICON MAPPER (Updated) ---
 const IconMap: any = {
   FaUserCircle, FaMapMarkedAlt, FaTasks, FaBirthdayCake,
   FaMedal, FaClipboardList, FaLightbulb, FaHandsHelping,
   FaChartPie, FaCheckCircle, FaLeaf, FaPaw, FaGraduationCap,
-  FaFlag, FaUser, FaCalendarAlt
+  FaFlag, FaUser, FaCalendarAlt, FaHandshake // <--- Added FaHandshake
 };
 
 // --- 2. INTERFACES ---
@@ -41,7 +42,7 @@ export default function DashboardClient({ user, dbUser, opportunities: initialOp
   const [history, setHistory] = useState<any[]>([]);
   const [items, setItems] = useState<any[]>([]); 
   const [loadingJoin, setLoadingJoin] = useState<string | null>(null);
-  const [loadingLeave, setLoadingLeave] = useState<string | null>(null); // NEW
+  const [loadingLeave, setLoadingLeave] = useState<string | null>(null);
 
   // Initialize state
   useEffect(() => {
@@ -75,7 +76,7 @@ export default function DashboardClient({ user, dbUser, opportunities: initialOp
     finally { setLoadingJoin(null); }
   };
 
-  // --- LEAVE LOGIC (NEW) ---
+  // --- LEAVE LOGIC ---
   const handleLeave = async (itemId: string, type: string) => {
     if (!confirm("Are you sure you want to leave this activity?")) return;
 
@@ -89,7 +90,6 @@ export default function DashboardClient({ user, dbUser, opportunities: initialOp
         const data = await res.json();
 
         if (data.success) {
-            // Remove from local history immediately
             setHistory(prev => prev.filter(h => h.id !== itemId));
             router.refresh();
         }
@@ -131,7 +131,6 @@ export default function DashboardClient({ user, dbUser, opportunities: initialOp
 
           <div className="lg:col-span-5 flex flex-col gap-8">
              <RankCard rank={rank} />
-             {/* Pass handleLeave to HistoryTimeline */}
              <HistoryTimeline history={history} onLeave={handleLeave} loadingLeave={loadingLeave} />
           </div>
 
@@ -147,10 +146,34 @@ export default function DashboardClient({ user, dbUser, opportunities: initialOp
 }
 
 // ─────────────────────────────────────────────────────────────
-// UPDATED SUB-COMPONENTS
+// SUB-COMPONENTS
 // ─────────────────────────────────────────────────────────────
 
-// 2. History Timeline (UPDATED with Leave Button)
+// 3. Profile Card (UPDATED)
+const ProfileCard = ({ details }: { details: any }) => (
+  <motion.div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100" variants={fadeInUp}>
+    <h3 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
+        <FaUserCircle className="text-blue-500" /> My Profile
+    </h3>
+    <div className="space-y-4">
+        <ProfileRow label="Age" value={details.age} icon={FaBirthdayCake} />
+        <ProfileRow label="Location" value={`${details.province}, ${details.district}`} icon={FaMapMarkedAlt} />
+        <ProfileRow label="Program" value={details.program} icon={FaTasks} />
+        
+        {/* --- ADDED THIS SECTION --- */}
+        {details.school && (
+          <ProfileRow label="School" value={details.school} icon={FaGraduationCap} />
+        )}
+        {details.partner && (
+          <ProfileRow label="Organization" value={details.partner} icon={FaHandshake} />
+        )}
+        {/* --- END OF ADDED SECTION --- */}
+    </div>
+  </motion.div>
+);
+
+// ... (All other sub-components remain unchanged) ...
+
 const HistoryTimeline = ({ history, onLeave, loadingLeave }: { history: any[], onLeave: (id: string, type: string) => void, loadingLeave: string | null }) => (
     <motion.div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 flex-1" variants={fadeInUp}>
         <h3 className="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2">
@@ -165,8 +188,6 @@ const HistoryTimeline = ({ history, onLeave, loadingLeave }: { history: any[], o
             ) : (
                 history.map((item, idx) => {
                     const ItemIcon = IconMap[item.iconName] || FaCheckCircle;
-                    // Assuming item in history has 'type' stored, if not default to 'opportunity'
-                    // Make sure your join API saves the 'type' in history!
                     const itemType = item.type || 'opportunity'; 
 
                     return (
@@ -175,14 +196,12 @@ const HistoryTimeline = ({ history, onLeave, loadingLeave }: { history: any[], o
                                 <ItemIcon />
                             </div>
                             
-                            {/* Header Row */}
                             <div className="flex justify-between items-start">
                                 <div>
                                     <span className="text-xs text-slate-400 font-semibold uppercase tracking-wider">{item.date}</span>
                                     <h4 className="font-bold text-slate-800">{item.title}</h4>
                                 </div>
                                 
-                                {/* LEAVE BUTTON */}
                                 <button 
                                     onClick={() => onLeave(item.id, itemType)}
                                     disabled={loadingLeave === item.id}
@@ -201,9 +220,6 @@ const HistoryTimeline = ({ history, onLeave, loadingLeave }: { history: any[], o
         </div>
     </motion.div>
 );
-
-// ... (Other components OpportunityHub, ProfileCard, etc. stay exactly the same)
-// Just include the rest of your existing sub-components here for the file to be complete.
 
 const OpportunityHub = ({ items, onJoin, loadingId }: any) => (
     <motion.div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100" variants={fadeInUp}>
@@ -270,26 +286,13 @@ const OpportunityHub = ({ items, onJoin, loadingId }: any) => (
     </motion.div>
 );
 
-const ProfileCard = ({ details }: any) => (
-  <motion.div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100" variants={fadeInUp}>
-    <h3 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
-        <FaUserCircle className="text-blue-500" /> My Profile
-    </h3>
-    <div className="space-y-4">
-        <ProfileRow label="Age" value={details.age} icon={FaBirthdayCake} />
-        <ProfileRow label="Location" value={`${details.province}, ${details.district}`} icon={FaMapMarkedAlt} />
-        <ProfileRow label="Program" value={details.program} icon={FaTasks} />
-    </div>
-  </motion.div>
-);
-
 const ProfileRow = ({ label, value, icon: Icon }: any) => (
     <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
         <div className="flex items-center gap-3">
             <div className="p-2 bg-white rounded-md text-slate-400 shadow-sm"><Icon /></div>
             <span className="text-sm text-slate-500 font-medium">{label}</span>
         </div>
-        <span className="font-bold text-slate-800">{value}</span>
+        <span className="font-bold text-slate-800 text-sm text-right">{value}</span>
     </div>
 );
 
